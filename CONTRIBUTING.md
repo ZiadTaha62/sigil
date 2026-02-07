@@ -16,7 +16,7 @@ Thanks for your interest! We welcome contributions.
 
 ## Setup
 
-- Clone: `git clone https://github.com/ziadtaha62/sigil.git`
+- Clone: `git clone https://github.com/ZiadTaha62/sigil.git`
 - Install: `npm install`
 - Build: `npm run build`
 - Test: `npm run test:unit` coverage should be `>75%` of lines.

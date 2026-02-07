@@ -1,21 +1,37 @@
 {
-  "name": "sigil",
+  "name": "@vicin/sigil",
   "version": "1.0.0",
   "description": "Lightweight TypeScript library for nominal identity classes",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc",
     "lint": "eslint --fix",
     "format": "prettier --write",
-    "test": "jest tests --coverage",
+    "test": "jest tests && tsd",
     "test:unit": "jest tests/unit --coverage",
     "test:unit:sigil": "jest tests/unit/sigil.test.ts",
     "test:unit:registry": "jest tests/unit/registry.test.ts",
     "test:performance": "jest tests/performance",
     "test:performance:creation": "jest tests/performance/creation.test.ts",
     "test:performance:instanceof": "jest tests/performance/instanceof.test.ts",
-    "test:types": "tsd"
+    "test:types": "tsd",
+    "prepublishOnly": "npm run build && npm run test:unit && npm run test:types"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "tsd": {
+    "directory": "tests/types",
+    "compilerOptions": {
+      "strict": true,
+      "esModuleInterop": true,
+      "moduleResolution": "node"
+    }
   },
   "keywords": [
     "typescript",
