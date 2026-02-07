@@ -85,7 +85,7 @@ export function typed<S extends Function, L extends string = string>(
       );
     }
   }
-  return Class as unknown as TypedSigil<S, L>;
+  return Class as TypedSigil<S, L>;
 }
 
 /**

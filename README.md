@@ -68,13 +68,13 @@ pnpm add sigil
 Use the `Sigil` base class or the `Sigilify` mixin to opt a class into the Sigil runtime contract.
 
 ```ts
-import { Sigil, Sigilify } from "sigil";
+import { Sigil, Sigilify } from 'sigil';
 
 // Using the pre-sigilified base class:
 class User extends Sigil {}
 
 // Or use Sigilify when you want an ad-hoc class:
-const MyClass = Sigilify(class {}, "@myorg/mypkg.MyClass");
+const MyClass = Sigilify(class {}, '@myorg/mypkg.MyClass');
 ```
 
 This adds runtime metadata to the constructor and allows you to use runtime helpers (see API).
@@ -84,9 +84,9 @@ This adds runtime metadata to the constructor and allows you to use runtime help
 Apply a label with the `@WithSigil` decorator. This is handy for small classes or when you prefer decorator syntax.
 
 ```ts
-import { Sigil, WithSigil } from "sigil";
+import { Sigil, WithSigil } from 'sigil';
 
-@WithSigil("@myorg/mypkg.User")
+@WithSigil('@myorg/mypkg.User')
 class User extends Sigil {}
 ```
 
@@ -97,10 +97,10 @@ class User extends Sigil {}
 HOFs work well in many build setups and are idempotent-safe for HMR flows.
 
 ```ts
-import { Sigil, withSigil } from "sigil";
+import { Sigil, withSigil } from 'sigil';
 
 class _User extends Sigil {}
-const User = withSigil(_User, "@myorg/mypkg.User");
+const User = withSigil(_User, '@myorg/mypkg.User');
 
 const user = new User();
 console.log(User.SigilLabel); // "@myorg/mypkg.User"
@@ -111,10 +111,10 @@ console.log(User.SigilLabel); // "@myorg/mypkg.User"
 If you want TypeScript to treat identities nominally (so `UserId` !== `PostId` despite identical shape), use the typed helpers.
 
 ```ts
-import { Sigil, withSigilTyped, GetInstance } from "sigil";
+import { Sigil, withSigilTyped, GetInstance } from 'sigil';
 
 class _User extends Sigil {}
-const User = withSigilTyped(_User, "@myorg/mypkg.User");
+const User = withSigilTyped(_User, '@myorg/mypkg.User');
 type User = GetInstance<typeof User>;
 
 // Now `User` carries a compile-time brand that prevents accidental assignment
@@ -128,14 +128,14 @@ Migration old code into `Sigil` can be done seamlessly with this set-up:
 1. Set `SigilOptions.autofillLabels` to `true` at the start of the app so no errors are thrown in the migration stage:
 
 ```ts
-import { updateOptions } from "sigil";
+import { updateOptions } from 'sigil';
 updateOptions({ autofillLabels: true });
 ```
 
 2. Make you base classes extends `Sigil`:
 
 ```ts
-import { Sigil } from "sigil";
+import { Sigil } from 'sigil';
 
 class MyBaseClass {} // original
 
@@ -215,15 +215,15 @@ Basic patterns:
 Mixin / factory:
 
 ```ts
-import { Sigilify } from "sigil";
+import { Sigilify } from 'sigil';
 
-const MyClass = Sigilify(class {}, "MyClass");
+const MyClass = Sigilify(class {}, 'MyClass');
 ```
 
 Direct base-class extend:
 
 ```ts
-import { Sigil, WithSigil } from "sigil";
+import { Sigil, WithSigil } from 'sigil';
 
 class MyClass extends Sigil {}
 ```
@@ -234,19 +234,19 @@ Once you opt into the runtime contract, Sigil enforces consistency: in DEV mode,
 Decorator style:
 
 ```ts
-import { Sigil, WithSigil } from "sigil";
+import { Sigil, WithSigil } from 'sigil';
 
-@WithSigil("MyClass") // <-- Note `@WithSigil` used here cause it extended alreay sigilized class (Sigil). Error is thrown without it.
+@WithSigil('MyClass') // <-- Note `@WithSigil` used here cause it extended alreay sigilized class (Sigil). Error is thrown without it.
 class MyClass extends Sigil {}
 ```
 
 HOF (preferred for many workflows):
 
 ```ts
-import { Sigil, withSigil } from "sigil";
+import { Sigil, withSigil } from 'sigil';
 
 class _MyClass extends Sigil {}
-const MyClass = withSigil(_MyClass, "MyClass");
+const MyClass = withSigil(_MyClass, 'MyClass');
 ```
 
 Recommendation:
@@ -262,13 +262,13 @@ Runtime metadata alone does not change TypeScript types. To get compile-time nom
 Example using a typed HOF:
 
 ```ts
-import { Sigil, withSigilTyped, GetInstance } from "sigil";
+import { Sigil, withSigilTyped, GetInstance } from 'sigil';
 
 // Untyped (runtime) base you extend as normal TS class code:
 class _User extends Sigil {}
 
 // Create a fully typed & runtime-safe class:
-const User = withSigilTyped(_User, "User");
+const User = withSigilTyped(_User, 'User');
 type User = GetInstance<typeof User>;
 ```
 
@@ -279,7 +279,7 @@ With the typed HOF:
 
 ---
 
-#### Verbosity & why there are '\_Class' and 'Class'
+#### Why there are '\_Class' and 'Class'
 
 The typed approach requires redefinition of public class, so you have:
 
@@ -291,17 +291,17 @@ This separation is necessary as typescript decorators doesn't affect type system
 Example of appraoch for class chain:
 
 ```ts
-import { Sigil, withSigilTyped, GetInstance } from "sigil";
+import { Sigil, withSigilTyped, GetInstance } from 'sigil';
 
 // Untyped base classes used for implementation:
 class _User extends Sigil {}
 
-const User = withSigilTyped(_User, "User");
+const User = withSigilTyped(_User, 'User');
 type User = GetInstance<typeof User>;
 
 class _Admin extends User {}
 
-const Admin = withSigilTyped(_Admin, "Admin");
+const Admin = withSigilTyped(_Admin, 'Admin');
 type Admin = GetInstance<typeof Admin>;
 
 // Type relationships:
@@ -334,26 +334,26 @@ The update of Sigil brand types happens via HOF that are defined below actual cl
 Example:
 
 ```ts
-import { Sigil, withSigilTyped } from "sigil";
+import { Sigil, withSigilTyped } from 'sigil';
 
 class _X extends Sigil {
   // All logic for class
 }
 
-export const X = withSigilTyped(_X, "Label.X"); // <-- Pass class with label to uniquely identify it from other classes
+export const X = withSigilTyped(_X, 'Label.X'); // <-- Pass class with label to uniquely identify it from other classes
 export type X = InstanceType<typeof X>; // alias to instance to avoid InstanceType<typeof X> everywhere
 ```
 
 In other parts of the code:
 
 ```ts
-import { X } from "./example.ts";
+import { X } from './example.ts';
 
 class _Y extends X {
   // All logic as earlier
 }
 
-export const Y = withSigilTyped(_Y, "Label.Y");
+export const Y = withSigilTyped(_Y, 'Label.Y');
 export type Y = InstanceType<typeof Y>;
 ```
 
@@ -367,11 +367,11 @@ Earlier example used `InstanceType<>` to get instance of the class. It works wel
 So alternative in introduced which is `GetInstance`.
 
 ```ts
-import { Sigil, withSigilTyped, GetInstance } from "sigil";
+import { Sigil, withSigilTyped, GetInstance } from 'sigil';
 
 class _X extends Sigil {}
 
-export const X = withSigilTyped(_X, "Label.X");
+export const X = withSigilTyped(_X, 'Label.X');
 export type X = GetInstance<typeof X>; // <-- Just replace 'InstanceType' here with 'GetInstance'
 ```
 
@@ -386,12 +386,12 @@ One of the downsides of defining typed class at the bottom is that we need to re
 Example of generic propagation:
 
 ```ts
-import { Sigil, withSigilTyped, GetInstance } from "sigil";
+import { Sigil, withSigilTyped, GetInstance } from 'sigil';
 
 // Untyped base classes used for implementation:
 class _X<G> extends Sigil {}
 
-export const X = withSigilTyped(_X, "Label.X");
+export const X = withSigilTyped(_X, 'Label.X');
 export type X<G> = GetInstance<typeof X<G>>; // <-- Generics re-defined here, just copy-paste and pass them
 ```
 
@@ -403,11 +403,11 @@ You may see error: `Property 'x' of exported anonymous class type may not be pri
 This comes from the fact that all typed classes are `anonymous class` as they are return of HOF and ts compiler struggle to type them safely. to avoid these error entirly all you need is exporting the untyped classes even if they are un-used as a good convention.
 
 ```ts
-import { Sigil, withSigilTyped, GetInstance } from "sigil";
+import { Sigil, withSigilTyped, GetInstance } from 'sigil';
 
 export class _X extends Sigil {} // <-- Just add 'export' here
 
-export const X = withSigilTyped(_X, "Label.X");
+export const X = withSigilTyped(_X, 'Label.X');
 export type X = GetInstance<typeof X>;
 ```
 
@@ -422,9 +422,9 @@ export type X = GetInstance<typeof X>;
 Top-level exports from the library:
 
 ```ts
-export { Sigil, SigilError } from "./classes";
-export { WithSigil } from "./decorator";
-export { typed, withSigil, withSigilTyped } from "./enhancers";
+export { Sigil, SigilError } from './classes';
+export { WithSigil } from './decorator';
+export { typed, withSigil, withSigilTyped } from './enhancers';
 export {
   isDecorated,
   isInheritanceChecked,
@@ -432,10 +432,10 @@ export {
   isSigilBaseInstance,
   isSigilCtor,
   isSigilInstance,
-} from "./helpers";
-export { Sigilify } from "./mixin";
-export { updateOptions, type SigilOptions } from "./options";
-export { REGISTRY } from "./registry";
+} from './helpers';
+export { Sigilify } from './mixin';
+export { updateOptions, type SigilOptions } from './options';
+export { REGISTRY } from './registry';
 export type {
   ISigil,
   ISigilInstance,
@@ -443,7 +443,7 @@ export type {
   TypedSigil,
   GetInstance,
   SigilBrandOf,
-} from "./types";
+} from './types';
 ```
 
 ### Key helpers (runtime)
@@ -487,13 +487,13 @@ Instances of sigilified classes expose instance helpers:
 Sigil exposes a small set of runtime options that control DEV behavior. These can be modified at app startup via `updateOptions(...)`.
 
 ```ts
-import { updateOptions } from "sigil";
+import { updateOptions } from 'sigil';
 
 updateOptions({
   autofillLabels: false, // auto-generate labels for subclasses that would otherwise inherit
   skipLabelInheritanceCheck: false, // skip DEV-only inheritance checks -- ALMOST NEVER WANT TO SET THIS TO TRUE, Use 'autofillLabels: true' instead. --
   labelValidation: null, // or a RegExp / function to validate labels
-  devMarker: process.env.NODE_ENV !== "production", // boolean used to block dev only checks in non-dev enviroments
+  devMarker: process.env.NODE_ENV !== 'production', // boolean used to block dev only checks in non-dev enviroments
 });
 ```
 
@@ -531,9 +531,9 @@ Registry is stored in `globalThis` under `Symbol.for(__SIGIL_REGISTRY__)` so the
 Unfortunately concrete types of classes is not supported and all classes are stored as `ISigil` type. if you want concrete typings you can wrap registery:
 
 ```ts
-import { REGISTRY } from "sigil";
-import { MySigilClass1 } from "./file1";
-import { MySigilClass2 } from "./file2";
+import { REGISTRY } from 'sigil';
+import { MySigilClass1 } from './file1';
+import { MySigilClass2 } from './file2';
 
 interface MyClasses {
   MySigilClass1: typeof MySigilClass1;

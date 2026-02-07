@@ -43,8 +43,10 @@ module.exports = [
     rules: {
       // Use typescript's no-unused-vars of '@typescript-eslint' instead
       'no-unused-vars': 'off',
+      // Use typescript's built-in no-redeclare instead
+      'no-redeclare': 'off',
 
-      'prettier/prettier': 'error',
+      'prettier/prettier': 'warn',
       '@typescript-eslint/no-unused-vars': 'warn',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       'no-console': 'warn',
