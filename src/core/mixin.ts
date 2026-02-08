@@ -9,9 +9,9 @@ import {
   markSigilBase,
   verifyLabel,
 } from './helpers';
-import { OPTIONS, type SigilOptions } from './options';
+import { OPTIONS } from './options';
 import { __LABEL__, __TYPE__, __TYPE_LINEAGE__, __TYPE_SET__ } from './symbols';
-import type { Constructor, ISigil } from './types';
+import type { Constructor, ISigil, SigilOptions } from './types';
 
 /**
  * Mixin factory that augments an existing class with Sigil runtime metadata and

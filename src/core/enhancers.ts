@@ -5,8 +5,8 @@ import {
   isSigilCtor,
   verifyLabel,
 } from './helpers';
-import { OPTIONS, type SigilOptions } from './options';
-import type { TypedSigil } from './types';
+import { OPTIONS } from './options';
+import type { TypedSigil, SigilOptions } from './types';
 
 /**
  * HOF (class inhancer) that attaches runtime sigil metadata to Sigil class.
@@ -71,19 +71,19 @@ export function typed<S extends Function, L extends string = string>(
   label?: L,
   opts?: Pick<SigilOptions, 'devMarker'>
 ): TypedSigil<S, L> {
+  const devMarker = opts?.devMarker ?? OPTIONS.devMarker;
+
   if (!isSigilCtor(Class))
     throw new Error(
       `[Sigil Error] 'typed' HOF accept only Sigil classes but used on class ${Class?.name ?? 'unknown'}`
     );
 
-  if ((opts?.devMarker ?? OPTIONS.devMarker) && label) {
+  if (devMarker && label) {
     const runtimeLabel = Class.SigilLabel;
-    if (runtimeLabel && runtimeLabel !== label) {
-      // Runtime label mismatch — surfaced in DEV only
+    if (runtimeLabel && runtimeLabel !== label)
       throw new Error(
         `[Sigil Error][typed] runtime label "${runtimeLabel}" does not match asserted label "${label}".`
       );
-    }
   }
   return Class as TypedSigil<S, L>;
 }

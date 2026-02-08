@@ -1,5 +1,4 @@
-import { OPTIONS, type SigilOptions } from './options';
-import { REGISTRY } from './registry';
+import { OPTIONS, getActiveRegistry } from './options';
 import {
   __DECORATED__,
   __INHERITANCE_CHECKED__,
@@ -10,7 +9,7 @@ import {
   __TYPE_SET__,
   __TYPE__,
 } from './symbols';
-import type { ISigil, ISigilInstance } from './types';
+import type { ISigil, ISigilInstance, SigilOptions } from './types';
 
 /** -----------------------------------------
  *  High level helpers
@@ -36,7 +35,11 @@ import type { ISigil, ISigilInstance } from './types';
  * @param opts - Options object to override any global options if needed.
  * @throws Error when `ctor` is already decorated.
  */
-export function decorateCtor(ctor: Function, label: string) {
+export function decorateCtor(
+  ctor: Function,
+  label: string,
+  opts?: Pick<SigilOptions, 'devMarker' | 'storeConstructor'>
+) {
   // if already decorated throw error
   if (isDecorated(ctor))
     throw new Error(
@@ -45,7 +48,7 @@ export function decorateCtor(ctor: Function, label: string) {
 
   // get symbol for the label and update registry
   const symbol = Symbol.for(label);
-  REGISTRY.register(label, ctor as ISigil);
+  getActiveRegistry()?.register(label, ctor as ISigil, opts);
 
   // attach basic runtime statics
   Object.defineProperty(ctor, __LABEL__, {
@@ -107,16 +110,20 @@ export function checkInheritance(
   ctor: Function,
   opts?: Pick<
     SigilOptions,
-    'skipLabelInheritanceCheck' | 'autofillLabels' | 'devMarker'
+    | 'skipLabelInheritanceCheck'
+    | 'autofillLabels'
+    | 'devMarker'
+    | 'storeConstructor'
   >
 ) {
-  if (!(opts?.devMarker ?? OPTIONS.devMarker)) return;
+  const devMarker = opts?.devMarker ?? OPTIONS.devMarker;
+  const skipLabelInheritanceCheck =
+    opts?.skipLabelInheritanceCheck ?? OPTIONS.skipLabelInheritanceCheck;
+  const autofillLabels = opts?.autofillLabels ?? OPTIONS.autofillLabels;
+
+  if (!devMarker) return;
   if (!isSigilCtor(ctor)) return;
-  if (
-    isInheritanceChecked(ctor) ||
-    (opts?.skipLabelInheritanceCheck ?? OPTIONS.skipLabelInheritanceCheck)
-  )
-    return;
+  if (isInheritanceChecked(ctor) || skipLabelInheritanceCheck) return;
 
   /** Array of all sigil constructors in the chain (starting with the provided ctor) */
   const ctors: ISigil[] = [ctor];
@@ -137,10 +144,7 @@ export function checkInheritance(
     if (!ctor) continue;
     let label = ctor.SigilLabel;
     if (labelOwner.has(label)) {
-      if (
-        isDecorated(ctor) ||
-        !(opts?.autofillLabels ?? OPTIONS.autofillLabels)
-      ) {
+      if (isDecorated(ctor) || !autofillLabels) {
         const ancestorName = labelOwner.get(label);
         throw new Error(
           `[Sigil Error] Class "${ctor.name}" re-uses Sigil label "${label}" from ancestor "${ancestorName}". ` +
@@ -148,7 +152,7 @@ export function checkInheritance(
         );
       }
       label = generateRandomLabel();
-      decorateCtor(ctor, label);
+      decorateCtor(ctor, label, opts);
     }
     labelOwner.set(label, ctor.name);
   }
@@ -200,7 +204,8 @@ export function verifyLabel<L extends string>(
  */
 export function generateRandomLabel(length = 16): string {
   let label = generateRandomString(length);
-  while (REGISTRY.has(label)) label = generateRandomLabel();
+  const registry = getActiveRegistry();
+  if (registry) while (registry.has(label)) label = generateRandomLabel();
   return `@Sigil.auto-${label}`;
 }
 

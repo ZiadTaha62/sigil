@@ -1,6 +1,7 @@
 import { Sigil, withSigil, REGISTRY } from '../../src';
 
 // Isolate tests from each other
+REGISTRY.replaceRegistry(new Map());
 REGISTRY.clear();
 
 //
@@ -86,5 +87,17 @@ describe('REGISTRY basic operations', () => {
 
     expect(myMap.has(labelA)).toBe(true);
     expect(myMap.get(labelA)).toBe(A);
+  });
+
+  test('Null registry', () => {
+    REGISTRY.replaceRegistry(null);
+    expect(REGISTRY.has(labelA)).toBe(false);
+    class _A extends Sigil {}
+    const A = withSigil(_A, labelA);
+    expect(REGISTRY.has(labelA)).toBe(false);
+  });
+
+  test('free registry', () => {
+    REGISTRY.replaceRegistry(null);
   });
 });

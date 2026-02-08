@@ -5,7 +5,7 @@ import {
   isSigilCtor,
   verifyLabel,
 } from './helpers';
-import type { SigilOptions } from './options';
+import type { SigilOptions } from './types';
 
 /**
  * Class decorator factory that attaches sigil statics to a class constructor.

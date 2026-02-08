@@ -12,6 +12,7 @@ import {
 } from '../../src';
 
 // Isolate tests from each other
+REGISTRY.replaceRegistry(new Map());
 REGISTRY.clear();
 
 describe('Sigil core runtime behavior', () => {
@@ -126,22 +127,15 @@ describe('Sigil core runtime behavior', () => {
     }).toThrow("[Sigil Error] 'typed' HOF accept only Sigil classes");
   });
 
-  test('duplicate labels warn in DEV', () => {
-    const spy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-
+  test('duplicate labels throws', () => {
     class _A extends Sigil {}
     withSigil(_A, '@test/Dup');
 
     // A second class with same label should throw during sigil registration in DEV
     class _B extends Sigil {}
-    withSigil(_B, '@test/Dup');
-
-    expect(spy).toHaveBeenCalled();
-    expect(spy).toHaveBeenCalledWith(
-      expect.stringContaining('[Sigil] Duplicate label')
+    expect(() => withSigil(_B, '@test/Dup')).toThrow(
+      "[Sigil Error] Duplicate label '@test/Dup' (different classes: _A vs _B)"
     );
-
-    spy.mockRestore();
   });
 
   test('Empty label autofill', () => {
@@ -191,5 +185,9 @@ describe('Sigil core runtime behavior', () => {
 
     // Plain object is not a sigil instance
     expect(isSigilInstance({})).toBe(false);
+  });
+
+  test('free registry', () => {
+    REGISTRY.replaceRegistry(null);
   });
 });

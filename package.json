@@ -19,7 +19,7 @@
     "test": "jest tests && tsd",
     "test:unit": "jest tests/unit --coverage",
     "test:unit:sigil": "jest tests/unit/sigil.test.ts",
-    "test:unit:registry": "jest tests/unit/registry.test.ts",
+    "test:unit:registryDeprecated": "jest tests/unit/registryDeprecated.test.ts",
     "test:performance": "jest tests/performance",
     "test:performance:creation": "jest tests/performance/creation.test.ts",
     "test:performance:instanceof": "jest tests/performance/instanceof.test.ts",
@@ -41,7 +41,8 @@
   "keywords": [
     "typescript",
     "nominal-typing",
-    "ddd"
+    "ddd",
+    "class-registry"
   ],
   "author": "Ziad ziadtaha62@gmail.com",
   "license": "MIT",
@@ -57,6 +58,7 @@
     "prettier": "^3.8.1",
     "ts-jest": "^29.4.6",
     "tsd": "^0.33.0",
+    "tsup": "^8.5.1",
     "typescript": "^5.9.3"
   }
 }

@@ -12,10 +12,11 @@ export {
 export { Sigilify } from './mixin';
 export {
   updateOptions,
-  type SigilOptions,
   DEFAULT_LABEL_REGEX,
+  SigilRegistry,
+  getActiveRegistry,
+  REGISTRY,
 } from './options';
-export { REGISTRY } from './registry';
 export type {
   GetInstance,
   ISigil,
@@ -23,4 +24,5 @@ export type {
   ISigilStatic,
   SigilBrandOf,
   TypedSigil,
+  SigilOptions,
 } from './types';

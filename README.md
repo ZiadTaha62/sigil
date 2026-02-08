@@ -1,17 +1,17 @@
 # Sigil
 
-`Sigil` is a lightweight TypeScript library for creating **nominal identity classes** with compile-time branding and reliable runtime type checks. It organize classes across your code and gives you power of **nominal typing**, **safe class checks across bundles** and **centralized registry** where reference to every class constructor is stored and enforced to have it's own unique label and symbol.
+`Sigil` is a lightweight TypeScript library for creating **nominal identity classes** with compile-time branding and reliable runtime type checks. It organizes classes across your code and gives you power of **nominal typing**, **safe class checks across bundles** and **centralized registry** where reference to every class constructor is stored and enforced to have it's own unique label and symbol.
 
 > **Key ideas:**
 >
 > - **Compile-time nominal typing** via type brands so two structurally-identical types can remain distinct.
 > - **Reliable runtime guards** using `Symbol.for(...)` and lineage sets instead of `instanceof`.
 > - **Inheritance-aware identity**: lineages and sets let you test for subtype/supertype relationships.
-> - **Centralized class registry**: every class have it's own unique label and symbol that can be used as an id throughout the codebase.
+> - **Centralized class registry**: every class have its own unique label and symbol that can be used as an id throughout the codebase.
 
 **Note: You should read these parts before implementing `Sigil` in you code:**
 
-- **Security note:** `Sigil` stores constructor references in the global registry. While it doesn't expose private instance data, it does mean any module can get constructor of the class. so **avoid** siglizing classes you want to make it unaccessable outside it's module. read more [Registery](#registry).
+- **Security note:** By default, `Sigil` stores constructor references in the global registry. While it doesn't expose private instance data, it does mean any module can get constructor of the class. if you have sensitive classes that you want to be unaccessable outside it's module update global or per class options (e.g. `updateOptions({ storeConstructor: false })` or `@WithSigil("label", { storeConstructor: false })`). read more [Registery](#registry).
 
 - **Performance note:** `Sigil` attaches couple methods to every sigilized class instance, this is negligible in almost all cases, also `.isOfType()` although being reliable and performance optimized but it still less performant that native `instanceof` checks, so if you want maximum performance in cases like hot-path code it is not advised to use `Sigil` as it's built for consistency and maintainability mainly at the cost of minimal performance overhead.
 
@@ -34,6 +34,7 @@
 - [Registry](#registry)
 - [Troubleshooting & FAQ](#troubleshooting--faq)
 - [Best practices](#best-practices)
+- [Deprecated API](#deprecated-api)
 - [Phantom](#phantom)
 - [Contributing](#contributing)
 - [License](#license)
@@ -168,7 +169,7 @@ But there is more to add to your system, which will be discussed in the [Core co
 
 ---
 
-### Whe `Sigil` exists
+### Why `Sigil` exists
 
 `Sigil` was born out of real-world friction in a large **monorepo** built with **Domain-Driven Design (DDD)**.
 
@@ -296,7 +297,7 @@ The typed approach requires redefinition of public class, so you have:
 
 This separation is necessary as typescript decorators doesn't affect type system. so to reflect type update the class should be passed to HOF.
 
-Example of appraoch for class chain:
+Example of approach for class chain:
 
 ```ts
 import { Sigil, withSigilTyped, GetInstance } from '@vicin/sigil';
@@ -408,7 +409,7 @@ export type X<G> = GetInstance<typeof X<G>>; // <-- Generics re-defined here, ju
 ### Anonymous classes
 
 You may see error: `Property 'x' of exported anonymous class type may not be private or protected.`, although this is rare to occur.
-This comes from the fact that all typed classes are `anonymous class` as they are return of HOF and ts compiler struggle to type them safely. to avoid these error entirly all you need is exporting the untyped classes even if they are un-used as a good convention.
+This comes from the fact that all typed classes are `anonymous class` as they are return of HOF and ts compiler struggle to type them safely. to avoid these error entirely all you need is exporting the untyped classes even if they are un-used as a good convention.
 
 ```ts
 import { Sigil, withSigilTyped, GetInstance } from '@vicin/sigil';
@@ -442,8 +443,12 @@ export {
   isSigilInstance,
 } from './helpers';
 export { Sigilify } from './mixin';
-export { updateOptions, type SigilOptions } from './options';
-export { REGISTRY } from './registry';
+export {
+  updateOptions,
+  SigilRegistry,
+  getActiveRegistry,
+  DEFAULT_LABEL_REGEX,
+} from './options';
 export type {
   ISigil,
   ISigilInstance,
@@ -451,6 +456,7 @@ export type {
   TypedSigil,
   GetInstance,
   SigilBrandOf,
+  SigilOptions,
 } from './types';
 ```
 
@@ -465,8 +471,9 @@ export type {
 - `typed(Class, label?, parent?)`: type-only narrowing helper (no runtime mutation) — asserts runtime label in DEV.
 - `isSigilCtor(value)`: `true` if `value` is a sigil constructor.
 - `isSigilInstance(value)`: `true` if `value` is an instance of a sigil constructor.
-- `REGISTRY`: singleton wrapper around global `Sigil` registry.
-- `updateOptions(opts)`: change global runtime options before sigil decoration (e.g., `autofillLabels`, `devMarker`, etc.).
+- `SigilRegistry`: `Sigil` Registy class used to centralize classes across app.
+- `getActiveRegistry`: Getter of active registry being used by `Sigil`.
+- `updateOptions(opts, mergeRegistries?)`: change global runtime options before sigil decoration (e.g., `autofillLabels`, `devMarker`, etc.).
 - `DEFAULT_LABEL_REGEX`: regex that insures structure of `@scope/package.ClassName` to all labels, it's advised to use it as your `SigilOptions.labelValidation`
 
 ### Instance & static helpers provided by Sigilified constructors
@@ -492,25 +499,34 @@ Instances of sigilified classes expose instance helpers:
 
 ## Options & configuration
 
-Sigil exposes a small set of runtime options that control DEV behavior. These can be modified at app startup via `updateOptions(...)`.
+Sigil exposes a small set of runtime options that control registry and DEV behavior. These can be modified at app startup via `updateOptions(...)` to set global options:
 
 ```ts
-import { updateOptions } from '@vicin/sigil';
+import { updateOptions, SigilRegistry } from '@vicin/sigil';
+
+// Values defined in this example are defaults:
 
 updateOptions({
   autofillLabels: false, // auto-generate labels for subclasses that would otherwise inherit
   skipLabelInheritanceCheck: false, // skip DEV-only inheritance checks -- ALMOST NEVER WANT TO SET THIS TO TRUE, Use 'autofillLabels: true' instead. --
   labelValidation: null, // or a RegExp / function to validate labels
   devMarker: process.env.NODE_ENV !== 'production', // boolean used to block dev only checks in non-dev enviroments
+  registry: new SigilRegistry(), // setting active registry used by 'Sigil'
+  useGlobalRegistry: true, // append registry into 'globalThis' to insure single source in the runtime in cross bundles.
+  storeConstructor: true, // store reference of the constructor in registry
 });
 ```
 
+Global options can be overridden per class by `opts` field in decorator and HOF.
+
 **Notes**:
 
-- It's advised to use `updateOptions({ labelValidation: DEFAULT_LABEL_REGEX })` at app entry to validate labels against `@scope/package.ClassName` structure.
+- It's advised to use `updateOptions({ labelValidation: DEFAULT_LABEL_REGEX })` at app entry point to validate labels against `@scope/package.ClassName` structure.
 - `devMarker` drives DEV-only checks — when `false`, many runtime validations are no-ops (useful for production builds).
 - `autofillLabels` is useful for some HMR/test setups where you prefer not to throw on collisions and want autogenerated labels.
 - `skipLabelInheritanceCheck = true` can result on subtle bugs if enabled, so avoid setting it to true.
+- When `SigilOptions.registry` is updated, old registry entries is merged and registered into new registry, to disable this behavrio pass `false` to `mergeRegistries` (`updateOptions({ registry: newRegistry }, false)`)
+- `useGlobalRegistry` makes Sigil registry a central manager of classes and reliable way to enforce single label usage, so avoid setting it to `false` except if you have a strong reason. if you want to avoid making class constructor accessible via `globalThis` use `storeConstructor = true` instead.
 
 ---
 
@@ -518,28 +534,82 @@ updateOptions({
 
 `Sigil` with default options forces devs to `SigilLabel` every class defined, that allows central class registery that store a reference for every class keyed by its label, also it prevent two classes in the codebase from having the same `SigilLabel`.
 
-This is mainly useful in large codebases or frameworks where they need central registry or if you need class transport across API, workers, etc... where you can use `SigilLabel` reliably to serialize class identity. to interact with registry `Sigil` exposes `REGISTRY` class instance.
+This is mainly useful in large codebases or frameworks where they need central registry or if you need class transport across API, workers, etc... where you can use `SigilLabel` reliably to serialize class identity. to interact with registry `Sigil` exposes `getActiveRegistry` and `SigilRegistry` class. also you can update registry related options with `updateOptions`.
 
-Registry is stored in `globalThis` under `Symbol.for(__SIGIL_REGISTRY__)` so there is single source of truth across the runtime, but this also exposes that map anywhere in the code.
+By default, registry is stored in `globalThis` under `Symbol.for(__SIGIL_REGISTRY__)` so one instance is used across runtime even with multiple bundles, but this also exposes that map anywhere in the code, see [globalThis and security](#globalthis-and-security).
 
-**Note:**
+### Get registry
 
-- If you intentionally want to disable registry checks (for certain test environments), call `REGISTRY.replaceRegistry(null)` to opt out. although you should not do this in most cases.
+You can interact with registry using `getActiveRegistry`, this function returns registry currently in use:
 
-### Registry map
+```ts
+import { getActiveRegistry } from '@vicin/sigil';
+const registry = getActiveRegistry();
+if (registry) console.log(registry.listLabels()); // check for presence as it can be 'null' if 'updateOptions({ registry: null })' is used
+```
 
-`Sigil` registry uses `Map<string, ISigil>` where `string` is `SigilLabel` and `ISigil` is reference to class constructor. If you want to pass your own external `Map` -**although this is not advised except if you have a strong reason**- you can use `REGISTRY.replaceRegistry` and `Sigil` will:
+### Replace registry
 
-- 1. Transfere all old classes to the new passed map.
-- 2. Attach this new map to `globalThis`.
-- 3. Store every new class defined in the passed map.
+In most cases you don't need to replace registry, but if you wanted to define a `Map` and make `Sigil` use it aa a register (e.g. define custom side effects) you can use `SigilRegistry`:
 
-### Class typing
+```ts
+import { SigilRegistry, updateOptions } from '@vicin/sigil';
+
+const myMap = new Map();
+const myRegistry = new SigilRegistry(myMap);
+updateOptions({ registry: myRegistry });
+
+// Now 'Sigil' register new labels and constructors to 'myMap'.
+```
+
+By default `Sigil` will merge old registry map into `myMap`, to prevent this behavior:
+
+```ts
+updateOptions({ registry: myRegistry }, false); // <-- add false here
+```
+
+Also you can set registry to `null`, but this is not advised as it disable all registry operations entirely:
+
+```ts
+import { updateOptions } from '@vicin/sigil';
+updateOptions({ registry: null }); // No label checks and registry map is freed from memory
+```
+
+### globalThis and security
+
+By default registry is stored in `globalThis`. to disable this behavior you can:
+
+```ts
+import { updateOptions } from '@vicin/sigil';
+updateOptions({ useGlobalRegistry: false });
+```
+
+Before applying this change, for registry to function normally you should insure that `Sigil` is not bundles twice in your app.
+however if you can't insure that only bundle of `Sigil` is used and don't want class constructors to be accessible globally do this:
+
+```ts
+import { updateOptions } from '@vicin/sigil';
+updateOptions({ storeConstructor: false });
+```
+
+Now registry only stores label of this classes and all class constructors are in the map are replaced with `null`.
+If you need even more control and like the global registry for classes but want to obscure only some of your classes you can pass this option per class and keep global options as is:
+
+```ts
+import { withSigil, Sigil } from '@vicin/sigil';
+
+class _X extends Sigil {}
+const X = withSigil(_X, 'X', { storeConstructor: false });
+```
+
+Pick whatever pattern you like!
+
+### Class typing in registry
 
 Unfortunately concrete types of classes is not supported and all classes are stored as `ISigil` type. if you want concrete typings you can wrap registery:
 
 ```ts
-import { REGISTRY } from '@vicin/sigil';
+import { getActiveRegistry } from '@vicin/sigil';
 import { MySigilClass1 } from './file1';
 import { MySigilClass2 } from './file2';
 
@@ -550,25 +620,25 @@ interface MyClasses {
 
 class MySigilRegistry {
   listLabels(): (keyof MyClasses)[] {
-    return REGISTRY.listLabels();
+    return getActiveRegistry()?.listLabels();
   }
   has(label: string): boolean {
-    return REGISTRY.has(label);
+    return getActiveRegistry()?.has(label);
   }
   get<L extends keyof MyClasses>(label: L): MyClasses[L] {
-    return REGISTRY.get(label) as any;
+    return getActiveRegistry()?.get(label) as any;
   }
   unregister(label: string): boolean {
-    return REGISTRY.unregister(label);
+    return getActiveRegistry()?.unregister(label);
   }
   clear(): void {
-    REGISTRY.clear();
+    getActiveRegistry()?.clear();
   }
   replaceRegistry(newRegistry: Map<string, ISigil> | null): void {
-    REGISTRY.replaceRegistry(newRegistry);
+    getActiveRegistry()?.replaceRegistry(newRegistry);
   }
   get size(): number {
-    return REGISTRY.size;
+    return getActiveRegistry()?.size;
   }
 }
 
@@ -577,10 +647,30 @@ export const MY_SIGIL_REGISTRY = new MySigilRegistry();
 
 Now you have fully typed central class registry!
 
-### Hot module relodes
+### I don't care about nominal types or central registry, i just want a runtime replacement of 'instanceof'
 
-- Sigil keeps a global registry (backed by `Symbol.for("@Sigil.__SIGIL_REGISTRY__")` on `globalThis`) so label uniqueness checks survive module reloads.
-- In development with HMR, duplicate class definitions are common; Sigil prints friendly warnings in DEV rather than throwing to keep the feedback loop fast.
+You can run this at the start of your app:
+
+```ts
+import { updateOptions } from '@vicin/sigil';
+updateOptions({ autofillLabels: true, storeConstructor: false });
+```
+
+now you can omit all `HOF`, `Decorators` and make `Sigil` work in the background:
+
+```ts
+import { Sigil } from '@vicin/sigil';
+
+class X extends Sigil {}
+class Y extends X {}
+class Z extends Y {}
+
+Z.isOfType(new Y()); // true
+Z.isOfType(new X()); // true
+Y.isOfType(new Y()); // false
+```
+
+No class constructors are stored globally and no code overhead, moreover if you can insure that `Sigil` is not bundles twice you can disable `useGlobalRegistry` and no trace of sigil in `globalThis`.
 
 ---
 
@@ -596,7 +686,7 @@ A: Use `@WithSigil("@your/label")`, or wrap the subclass with `withSigil` / `wit
 
 **Q: I got this error: 'Property 'x' of exported anonymous class type may not be private or protected.', How to fix it?**
 
-A: This error come's from the fact that all typed classes (return from `withSigil`, `withSigilTyped` or `typed`) are 'anonymous class' as they are the return of HOF. all you need to do it to export untyped classes (`_Class`) that have private or protected properties. or even export all untyped classes as a good convention even if they are not used.
+A: This error comes from the fact that all typed classes (return from `withSigil`, `withSigilTyped` or `typed`) are 'anonymous class' as they are the return of HOF. all you need to do is to export untyped classes (`_Class`) that have private or protected properties. or even export all untyped classes as a good convention even if they are not used.
 
 **Q: I need nominal types in TypeScript. Which helper do I use?**
 
@@ -604,9 +694,9 @@ A: Use `withSigilTyped` to both attach runtime metadata and apply compile-time b
 
 **Q: How do I inspect currently registered labels?**
 
-A: Use `REGISTRY.list()` to get an array of registered labels.
+A: Use `getActiveRegistry()?.list()` to get an array of registered labels.
 
-**Q: What if i want to omit labeling in some classes while inforce others?**
+**Q: What if i want to omit labeling in some classes while enforce others?**
 
 A: You can set `SigilOptions.autofillLabels` to `true`. or if you more strict enviroment you can define empty `@WithSigil()` decorator above classes you don't care about labeling and `Sigil` will generate random label for it, but still throw if you forgot to use a decorator or HOF on a class.
 
@@ -618,6 +708,36 @@ A: You can set `SigilOptions.autofillLabels` to `true`. or if you more strict en
 - Keep labels globally unique and descriptive (including scope and package like `@myorg/mypkg.ClassName`).
 - Use typed helpers for domain-level identities (IDs, tokens, domain types) so the compiler helps you avoid mistakes.
 - Run with `devMarker` enabled during local development / CI to catch label collisions early.
+
+---
+
+## Deprecated API
+
+### REGISTRY
+
+`Sigil` have moved from static reference registry to dynamic access and updates, now devs can create `SigilRegistry` class and pass it to `SigilOptions` to be be used by the library internals. however change is done gracefully and `REGISTRY` is still supported with no change in behavior but it's **marked with `deprecated` and will be removed in v2.0.0**.
+
+```ts
+import { REGISTRY, getActiveRegistry } from '@vicin/sigil';
+
+// from:
+const present = REGISTRY.has('label');
+
+// to:
+const present = getActiveRegistry()?.has('label'); // Active registy can be 'null' if 'SigilOptions.registy' is set to null so we used the '?' mark
+```
+
+```ts
+import { REGISTRY, updateOptions, SigilRegistry } from '@vicin/sigil';
+
+// from:
+const newRegistry = new Map();
+REGISTRY.replaceRegistry(newRegistry);
+
+// to
+const newRegistry = new SigilRegistry(); // can pass external map to constructor if needed.
+updateOptions({ registry: newRegistry });
+```
 
 ---
 
