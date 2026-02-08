@@ -13,7 +13,8 @@
   },
   "homepage": "https://github.com/ZiadTaha62/sigil#readme",
   "scripts": {
-    "build": "tsc",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "lint": "eslint --fix",
     "format": "prettier --write",
     "test": "jest tests && tsd",
