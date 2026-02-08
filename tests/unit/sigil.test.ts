@@ -9,7 +9,7 @@ import {
   updateOptions,
   withSigilTyped,
   typed,
-} from '../../src';
+} from '../../dist';
 
 // Isolate tests from each other
 REGISTRY.replaceRegistry(new Map());

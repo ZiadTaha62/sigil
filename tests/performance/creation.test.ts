@@ -10,7 +10,17 @@
  *  - Use --runInBand and --expose-gc for more stable results if desired.
  */
 
-import { Sigil, Sigilify, withSigil, updateOptions, REGISTRY } from '../../src';
+import {
+  Sigil,
+  Sigilify,
+  withSigil,
+  updateOptions,
+  REGISTRY,
+} from '../../dist';
+
+// Isolate tests from each other
+REGISTRY.replaceRegistry(new Map());
+REGISTRY.clear();
 
 const DEF_ITERATIONS = 2000;
 const INST_ITERATIONS = 10000;
@@ -333,6 +343,10 @@ describe('Performance: class creation comparisons (Sigil vs Plain)', () => {
     // keep test green; this test is measurement-only
     expect(true).toBe(true);
   }, 120000 /* generous timeout for perf runs */);
+
+  test('free registry', () => {
+    REGISTRY.replaceRegistry(null);
+  });
 });
 
 //

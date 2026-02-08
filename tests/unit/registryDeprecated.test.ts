@@ -1,4 +1,4 @@
-import { Sigil, withSigil, REGISTRY } from '../../src';
+import { Sigil, withSigil, REGISTRY } from '../../dist';
 
 // Isolate tests from each other
 REGISTRY.replaceRegistry(new Map());

@@ -1,5 +1,5 @@
 import { expectAssignable, expectError } from 'tsd';
-import { type GetInstance, Sigil, withSigilTyped } from '../../src';
+import { type GetInstance, Sigil, withSigilTyped } from '../../dist';
 
 // Class X extends Sigil
 class _X extends Sigil {}

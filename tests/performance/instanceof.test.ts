@@ -12,7 +12,11 @@
  *  - Use --runInBand and --expose-gc for more stable results if desired.
  */
 
-import { Sigil, withSigil, updateOptions, REGISTRY } from '../../src';
+import { Sigil, withSigil, updateOptions, REGISTRY } from '../../dist';
+
+// Isolate tests from each other
+REGISTRY.replaceRegistry(new Map());
+REGISTRY.clear();
 
 const CHECK_ITERATIONS = 200_000; // number of check ops per measured run
 const WARMUP_ITER = 1000;
@@ -188,6 +192,10 @@ describe('Perf: instanceof vs isOfType vs isOfTypeStrict', () => {
     // Pass test (measurement only)
     expect(true).toBe(true);
   }, 120000);
+
+  test('free registry', () => {
+    REGISTRY.replaceRegistry(null);
+  });
 });
 
 //
