@@ -1,12 +1,17 @@
 {
   "name": "@vicin/sigil",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Lightweight TypeScript library for nominal identity classes",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "publishConfig": {
     "access": "public"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ZiadTaha62/sigil.git"
+  },
+  "homepage": "https://github.com/ZiadTaha62/sigil#readme",
   "scripts": {
     "build": "tsc",
     "lint": "eslint --fix",

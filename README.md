@@ -11,9 +11,9 @@
 
 **Note: You should read these parts before implementing `Sigil` in you code:**
 
-- **Security note:** `Sigil` exposes a global registry of all sigilized classes, this means that all sigilized classes can be accessed anywhere in the code. so **avoid** siglizing security sensitive classes or any class that you want to make it unaccessable outside it's module. read more [Registery](#registry).
+- **Security note:** `Sigil` stores constructor references in the global registry. While it doesn't expose private instance data, it does mean any module can get constructor of the class. so **avoid** siglizing classes you want to make it unaccessable outside it's module. read more [Registery](#registry).
 
-- **Performance note:** `Sigil` attaches couple methods to every sigilized class instance, this is negligible in almost all cases, also `.isOfType()` although being reliable and performance optimized but it still marginally less performant that native `instanceof` checks, so if you want maximum performance in cases like hot-path code it is not advised to use `Sigil` as it's built for consistency and maintainability mainly at the cost of minimal performance overhead.
+- **Performance note:** `Sigil` attaches couple methods to every sigilized class instance, this is negligible in almost all cases, also `.isOfType()` although being reliable and performance optimized but it still less performant that native `instanceof` checks, so if you want maximum performance in cases like hot-path code it is not advised to use `Sigil` as it's built for consistency and maintainability mainly at the cost of minimal performance overhead.
 
 ---
 
@@ -35,16 +35,24 @@
 - [Troubleshooting & FAQ](#troubleshooting--faq)
 - [Best practices](#best-practices)
 - [Phantom](#phantom)
+- [Contributing](#contributing)
+- [License](#license)
+- [Author](#author)
 
 ---
 
 ## Features
 
 - Attach **stable runtime identity** to classes using `Symbol.for(label)`.
+
 - **Type-level branding** so distinct domain identities are enforced by TypeScript.
+
 - **Lineage tracking** (arrays + sets of symbols) for O(1) and O(n) checks.
+
 - Easy to use: decorator (`@WithSigil`), mixin (`Sigilify`), and HOF (Higher order function) helpers (`withSigil`, `withSigilTyped`, `typed`).
+
 - **Global registry** to centralize classes (query any class by it's label in run-time) and guard against duplicate labels.
+
 - Minimal runtime overhead in production (DEV checks can be toggled off).
 
 ---
@@ -54,11 +62,11 @@
 ### Install
 
 ```bash
-npm install sigil
+npm install @vicin/sigil
 # or
-yarn add sigil
+yarn add @vicin/sigil
 # or
-pnpm add sigil
+pnpm add @vicin/sigil
 ```
 
 **Requirements**: TypeScript 5.0+ (for stage-3 decorators) and Node.js 18+ recommended.
@@ -68,7 +76,7 @@ pnpm add sigil
 Use the `Sigil` base class or the `Sigilify` mixin to opt a class into the Sigil runtime contract.
 
 ```ts
-import { Sigil, Sigilify } from 'sigil';
+import { Sigil, Sigilify } from '@vicin/sigil';
 
 // Using the pre-sigilified base class:
 class User extends Sigil {}
@@ -84,7 +92,7 @@ This adds runtime metadata to the constructor and allows you to use runtime help
 Apply a label with the `@WithSigil` decorator. This is handy for small classes or when you prefer decorator syntax.
 
 ```ts
-import { Sigil, WithSigil } from 'sigil';
+import { Sigil, WithSigil } from '@vicin/sigil';
 
 @WithSigil('@myorg/mypkg.User')
 class User extends Sigil {}
@@ -97,7 +105,7 @@ class User extends Sigil {}
 HOFs work well in many build setups and are idempotent-safe for HMR flows.
 
 ```ts
-import { Sigil, withSigil } from 'sigil';
+import { Sigil, withSigil } from '@vicin/sigil';
 
 class _User extends Sigil {}
 const User = withSigil(_User, '@myorg/mypkg.User');
@@ -111,7 +119,7 @@ console.log(User.SigilLabel); // "@myorg/mypkg.User"
 If you want TypeScript to treat identities nominally (so `UserId` !== `PostId` despite identical shape), use the typed helpers.
 
 ```ts
-import { Sigil, withSigilTyped, GetInstance } from 'sigil';
+import { Sigil, withSigilTyped, GetInstance } from '@vicin/sigil';
 
 class _User extends Sigil {}
 const User = withSigilTyped(_User, '@myorg/mypkg.User');
@@ -128,14 +136,14 @@ Migration old code into `Sigil` can be done seamlessly with this set-up:
 1. Set `SigilOptions.autofillLabels` to `true` at the start of the app so no errors are thrown in the migration stage:
 
 ```ts
-import { updateOptions } from 'sigil';
+import { updateOptions } from '@vicin/sigil';
 updateOptions({ autofillLabels: true });
 ```
 
 2. Make you base classes extends `Sigil`:
 
 ```ts
-import { Sigil } from 'sigil';
+import { Sigil } from '@vicin/sigil';
 
 class MyBaseClass {} // original
 
@@ -215,7 +223,7 @@ Basic patterns:
 Mixin / factory:
 
 ```ts
-import { Sigilify } from 'sigil';
+import { Sigilify } from '@vicin/sigil';
 
 const MyClass = Sigilify(class {}, 'MyClass');
 ```
@@ -223,7 +231,7 @@ const MyClass = Sigilify(class {}, 'MyClass');
 Direct base-class extend:
 
 ```ts
-import { Sigil, WithSigil } from 'sigil';
+import { Sigil, WithSigil } from '@vicin/sigil';
 
 class MyClass extends Sigil {}
 ```
@@ -234,7 +242,7 @@ Once you opt into the runtime contract, Sigil enforces consistency: in DEV mode,
 Decorator style:
 
 ```ts
-import { Sigil, WithSigil } from 'sigil';
+import { Sigil, WithSigil } from '@vicin/sigil';
 
 @WithSigil('MyClass') // <-- Note `@WithSigil` used here cause it extended alreay sigilized class (Sigil). Error is thrown without it.
 class MyClass extends Sigil {}
@@ -243,7 +251,7 @@ class MyClass extends Sigil {}
 HOF (preferred for many workflows):
 
 ```ts
-import { Sigil, withSigil } from 'sigil';
+import { Sigil, withSigil } from '@vicin/sigil';
 
 class _MyClass extends Sigil {}
 const MyClass = withSigil(_MyClass, 'MyClass');
@@ -262,7 +270,7 @@ Runtime metadata alone does not change TypeScript types. To get compile-time nom
 Example using a typed HOF:
 
 ```ts
-import { Sigil, withSigilTyped, GetInstance } from 'sigil';
+import { Sigil, withSigilTyped, GetInstance } from '@vicin/sigil';
 
 // Untyped (runtime) base you extend as normal TS class code:
 class _User extends Sigil {}
@@ -291,7 +299,7 @@ This separation is necessary as typescript decorators doesn't affect type system
 Example of appraoch for class chain:
 
 ```ts
-import { Sigil, withSigilTyped, GetInstance } from 'sigil';
+import { Sigil, withSigilTyped, GetInstance } from '@vicin/sigil';
 
 // Untyped base classes used for implementation:
 class _User extends Sigil {}
@@ -334,7 +342,7 @@ The update of Sigil brand types happens via HOF that are defined below actual cl
 Example:
 
 ```ts
-import { Sigil, withSigilTyped } from 'sigil';
+import { Sigil, withSigilTyped } from '@vicin/sigil';
 
 class _X extends Sigil {
   // All logic for class
@@ -367,7 +375,7 @@ Earlier example used `InstanceType<>` to get instance of the class. It works wel
 So alternative in introduced which is `GetInstance`.
 
 ```ts
-import { Sigil, withSigilTyped, GetInstance } from 'sigil';
+import { Sigil, withSigilTyped, GetInstance } from '@vicin/sigil';
 
 class _X extends Sigil {}
 
@@ -386,7 +394,7 @@ One of the downsides of defining typed class at the bottom is that we need to re
 Example of generic propagation:
 
 ```ts
-import { Sigil, withSigilTyped, GetInstance } from 'sigil';
+import { Sigil, withSigilTyped, GetInstance } from '@vicin/sigil';
 
 // Untyped base classes used for implementation:
 class _X<G> extends Sigil {}
@@ -403,7 +411,7 @@ You may see error: `Property 'x' of exported anonymous class type may not be pri
 This comes from the fact that all typed classes are `anonymous class` as they are return of HOF and ts compiler struggle to type them safely. to avoid these error entirly all you need is exporting the untyped classes even if they are un-used as a good convention.
 
 ```ts
-import { Sigil, withSigilTyped, GetInstance } from 'sigil';
+import { Sigil, withSigilTyped, GetInstance } from '@vicin/sigil';
 
 export class _X extends Sigil {} // <-- Just add 'export' here
 
@@ -487,7 +495,7 @@ Instances of sigilified classes expose instance helpers:
 Sigil exposes a small set of runtime options that control DEV behavior. These can be modified at app startup via `updateOptions(...)`.
 
 ```ts
-import { updateOptions } from 'sigil';
+import { updateOptions } from '@vicin/sigil';
 
 updateOptions({
   autofillLabels: false, // auto-generate labels for subclasses that would otherwise inherit
@@ -531,7 +539,7 @@ Registry is stored in `globalThis` under `Symbol.for(__SIGIL_REGISTRY__)` so the
 Unfortunately concrete types of classes is not supported and all classes are stored as `ISigil` type. if you want concrete typings you can wrap registery:
 
 ```ts
-import { REGISTRY } from 'sigil';
+import { REGISTRY } from '@vicin/sigil';
 import { MySigilClass1 } from './file1';
 import { MySigilClass2 } from './file2';
 
@@ -551,7 +559,7 @@ class MySigilRegistry {
     return REGISTRY.get(label) as any;
   }
   unregister(label: string): boolean {
-    return REGISTRY.unregister();
+    return REGISTRY.unregister(label);
   }
   clear(): void {
     REGISTRY.clear();
@@ -618,3 +626,28 @@ A: You can set `SigilOptions.autofillLabels` to `true`. or if you more strict en
 `Phantom` is another lightweight TypeScript library I created for achieving **nominal typing** on primitives and objects through type-only metadata. It solves the problem of structural typing in TypeScript allowing accidental misuse of identical shapes (e.g., confusing `UserId` and `PostId` as both strings) by enabling compile-time distinctions with features like **brands**, **constrained identities**, **variants for states**, **additive traits**, and **reversible transformations**. This makes it ideal for domain-driven design (DDD) without runtime overhead.
 
 `Phantom` works seamlessly in conjunction with `Sigil`, use `Sigil` for nominal identity on classes (runtime-safe checks across bundles), and `Phantom` for primitives/objects. Together, they provide **end-to-end type safety**: e.g., a Sigil-branded `User` class could hold a Phantom-branded `UserId` string property, enforcing domain boundaries at both compile and runtime.
+
+- **GitHub: [@phantom](https://github.com/ZiadTaha62/phantom)**
+- **NPM: [@phantom](https://www.npmjs.com/package/@vicin/phantom)**
+
+---
+
+## Contributing
+
+Any contributions you make are **greatly appreciated**.
+
+Please see our [CONTRIBUTING.md](./CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
+## License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+---
+
+## Author
+
+Built with ❤️ by **Ziad Taha**.
+
+- **GitHub: [@ZiadTaha62](https://github.com/ZiadTaha62)**
+- **NPM: [@ziadtaha62](https://www.npmjs.com/~ziadtaha62)**
+- **Vicin: [@vicin](https://www.npmjs.com/org/vicin)**
