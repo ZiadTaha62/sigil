@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@vicin/sigil.svg)](https://www.npmjs.com/package/@vicin/sigil) [![npm downloads](https://img.shields.io/npm/dm/@vicin/sigil.svg)](https://www.npmjs.com/package/@vicin/sigil) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![TypeScript](https://img.shields.io/badge/TypeScript-5.0%2B-blue) [![Build](https://github.com/ZiadTaha62/sigil/actions/workflows/ci.yml/badge.svg)](https://github.com/ZiadTaha62/sigil/actions/workflows/ci.yml)
 
-> 🎉 First stable release — v2.1.2! Happy coding! 😄💻🚀
+> 🎉 First stable release — v1.2.2! Happy coding! 😄💻🚀
 > 📄 **Changelog:** [CHANGELOG.md](./CHANGELOG.md)
 
 `Sigil` is a lightweight TypeScript library for creating nominal identity classes with compile-time branding and reliable runtime type checks. It organizes class identities across your codebase and gives you the power of **nominal typing**, **safe cross-bundle class checks**, and a **central registry** where each class constructor is stored under a unique label.
@@ -90,7 +90,7 @@ This adds runtime metadata to the constructor and allows you to use runtime help
 
 #### Extend `Sigil` classes
 
-After opt into `Sigil` contract, labels are passed to child classes to uniquely identify them, it can be passed using two patterns:
+After opting into the `Sigil` contract, labels are passed to child classes to uniquely identify them, they can be supplied using two patterns:
 
 ##### Decorator pattern
 
@@ -164,7 +164,7 @@ import { Sigil } from '@vicin/sigil';
 class MyBaseClass extends Sigil {} // <-- add 'extends Sigil' here
 ```
 
-Congratulations you opt into `Sigil` and you can start replacing `instanceof` with `isOfType`, however there is more to add to your system, check [Core concepts](#core-concepts) for more.
+Congratulations — you’ve opted into `Sigil` and you can start replacing `instanceof` with `isOfType`, however there is more to add to your system, check [Core concepts](#core-concepts) for more.
 
 ---
 
@@ -459,7 +459,7 @@ The registry ensures **unique labels** and supports central class management for
 
 ### Class typing in registry
 
-Unfortunately concrete types of classes is not supported and all classes are stored as `ISigil` type. if you want concrete typing you can wrap registry:
+Unfortunately concrete types of classes is not supported and all classes are stored as `ISigil` type. if you want concrete typing, you can wrap registry:
 
 ```ts
 import { getActiveRegistry } from '@vicin/sigil';
