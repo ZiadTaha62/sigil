@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@vicin/sigil.svg)](https://www.npmjs.com/package/@vicin/sigil) [![npm downloads](https://img.shields.io/npm/dm/@vicin/sigil.svg)](https://www.npmjs.com/package/@vicin/sigil) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![TypeScript](https://img.shields.io/badge/TypeScript-5.0%2B-blue) [![Build](https://github.com/ZiadTaha62/sigil/actions/workflows/ci.yml/badge.svg)](https://github.com/ZiadTaha62/sigil/actions/workflows/ci.yml)
 
-> 🎉 First stable release — v1.2.2! Happy coding! 😄💻🚀
+> 🎉 First stable release — v1.2! Happy coding! 😄💻🚀
 > 📄 **Changelog:** [CHANGELOG.md](./CHANGELOG.md)
 
 `Sigil` is a lightweight TypeScript library for creating nominal identity classes with compile-time branding and reliable runtime type checks. It organizes class identities across your codebase and gives you the power of **nominal typing**, **safe cross-bundle class checks**, and a **central registry** where each class constructor is stored under a unique label.

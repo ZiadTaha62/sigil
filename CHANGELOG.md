@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.3] - 2026-02-11
+
+### Changed
+
+- Documentation updates (README)
+
 ## [1.2.2] - 2026-02-11
 
 ### Changed
