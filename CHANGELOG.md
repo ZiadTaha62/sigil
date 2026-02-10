@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.4] - 2026-02-11
+
+**Stable release**
+
+### Changed
+
+- Documentation updates (README)
+
 ## [1.2.3] - 2026-02-11
 
 ### Changed
