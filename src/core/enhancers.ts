@@ -60,7 +60,7 @@ export function withSigil<S extends Function, L extends string = string>(
  * Use this when the runtime metadata is already present (for example the class
  * is already decorated or was created via `Sigilify`).
  *
- * @deprecated
+ * @deprecated Will be removed in v2.0.0, check https://www.npmjs.com/package/@vicin/sigil?activeTab=readme#deprecated-api for more details.
  * @typeParam S - Constructor type (should be an ISigil).
  * @typeParam L - Label literal to associate at compile-time.
  * @param Class - The constructor to assert as typed sigil.

@@ -17,6 +17,7 @@
     "dev": "tsup --watch",
     "lint": "eslint --fix",
     "format": "prettier --write",
+    "typecheck": "tsc --noEmit",
     "test": "jest tests && tsd",
     "test:unit": "jest tests/unit --coverage",
     "test:unit:sigil": "jest tests/unit/sigil.test.ts",
@@ -29,7 +30,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "tsd": {
     "directory": "tests/types",

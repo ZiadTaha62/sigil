@@ -53,13 +53,9 @@ export function Sigilify<B extends Constructor, L extends string>(
     /**
      * Compile-time nominal brand that encodes the class label `L` plus parent's brand keys `BrandOf<P>`.
      *
+     * - HAVE NO RUN-TIME VALUE (undefined)
      * - Provides a *type-only* unique marker that makes instances nominally
      *   distinct by label and allows propagation/merging of brand keys across inheritance.
-     * - Runtime: **no runtime value is required**; this property exists only for the type system.
-     *
-     * @remarks
-     * Consumers should not read or set this property at runtime. It is used by helper
-     * types (e.g. `SigilBrandOf`, `TypedSigil`) to extract/propagate compile-time brands.
      */
     declare static readonly __SIGIL_BRAND__: Prettify<
       {
@@ -113,13 +109,9 @@ export function Sigilify<B extends Constructor, L extends string>(
     /**
      * Compile-time nominal brand that encodes the class label `L` plus parent's brand keys `BrandOf<P>`.
      *
+     * - HAVE NO RUN-TIME VALUE (undefined)
      * - Provides a *type-only* unique marker that makes instances nominally
      *   distinct by label and allows propagation/merging of brand keys across inheritance.
-     * - Runtime: **no runtime value is required**; this property exists only for the type system.
-     *
-     * @remarks
-     * Consumers should not read or set this property at runtime. It is used by helper
-     * types (e.g. `SigilBrandOf`, `TypedSigil`) to extract/propagate compile-time brands.
      */
     declare readonly __SIGIL_BRAND__: Prettify<
       {

@@ -312,15 +312,12 @@ export function isSigilCtor(ctor: unknown): ctor is ISigil {
  * Runtime predicate that checks whether the provided object is an instance
  * of a sigil class.
  *
- * The function is defensive: non-objects return `false`. If an object is
- * passed, the object's constructor is resolved and tested with `isSigilCtor`.
- *
- * @param obj - The value to test.
+ * @param inst - The instanca to test.
  * @returns `true` if `obj` is an instance produced by a sigil constructor.
  */
-export function isSigilInstance(obj: unknown): obj is InstanceType<ISigil> {
-  if (!obj || typeof obj !== 'object') return false;
-  const ctor = getConstructor(obj);
+export function isSigilInstance(inst: unknown): inst is InstanceType<ISigil> {
+  if (!inst || typeof inst !== 'object') return false;
+  const ctor = getConstructor(inst);
   return isSigilCtor(ctor);
 }
 
@@ -339,14 +336,16 @@ export function isSigilBaseCtor(ctor: Function): ctor is ISigil {
 /**
  * Check whether the provided object is an instance of a sigil base constructor.
  *
- * This resolves the object's constructor and delegates to `isSigilBaseCtor`.
+ * This resolves the instance's constructor and delegates to `isSigilBaseCtor`.
  *
- * @param obj - The object to test.
- * @returns `true` if `obj` is an instance of a sigil base constructor.
+ * @param inst - The instance to test.
+ * @returns `true` if `inst` is an instance of a sigil base constructor.
  */
-export function isSigilBaseInstance(obj: unknown): obj is InstanceType<ISigil> {
-  if (!obj || typeof obj !== 'object') return false;
-  const ctor = getConstructor(obj);
+export function isSigilBaseInstance(
+  inst: unknown
+): inst is InstanceType<ISigil> {
+  if (!inst || typeof inst !== 'object') return false;
+  const ctor = getConstructor(inst);
   return isSigilBaseCtor(ctor);
 }
 

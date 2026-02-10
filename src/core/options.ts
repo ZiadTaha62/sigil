@@ -180,7 +180,7 @@ export class SigilRegistry {
   /**
    * Replace active registry with new one. deprecated use 'updateOptions({ registry: newRegistry })' instead.
    *
-   * @deprecated Will be removed in v2.0.0, check https://www.npmjs.com/package/@vicin/sigil?activeTab=readme#registry for more details.
+   * @deprecated Will be removed in v2.0.0, check https://www.npmjs.com/package/@vicin/sigil?activeTab=readme#deprecated-api for more details.
    * @param newRegistry - New Set<string> instance to use as the active registry, or `null` to disable checks.
    */
   replaceRegistry(newRegistry: Map<string, ISigil | null> | null): void {
@@ -306,7 +306,7 @@ export const getActiveRegistry = (): SigilRegistry | null => {
  * Old 'REGISTRY' alias to interact with registy.
  *
  * 'REGISTRY' is a live binding for compat; prefer getActiveRegistry() to avoid manual sync.
- * @deprecated Will be removed in v2.0.0, check https://www.npmjs.com/package/@vicin/sigil?activeTab=readme#registry for more details.
+ * @deprecated Will be removed in v2.0.0, check https://www.npmjs.com/package/@vicin/sigil?activeTab=readme#deprecated-api for more details.
  */
 let REGISTRY = OPTIONS.registry!;
 

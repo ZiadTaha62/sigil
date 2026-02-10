@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.2.2 2026-02-11
+
+### Changed
+
+- Documentation updates (README and JSDOCs)
+
 ## v1.2.1 2026-02-10
 
 ### Added
@@ -10,7 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ## v1.2.0 2026-02-10
 
-## Added
+### Added
 
 - Added new typing method (decorator with brand field update)
 - Added type to exported base classes
