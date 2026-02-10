@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.2.1 2026-02-10
+
+### Added
+
+- Re-introduced 'ISigilStatic' and 'ISigilIntance' types
+
 ## v1.2.0 2026-02-10
 
 ## Added
