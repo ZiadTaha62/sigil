@@ -527,6 +527,8 @@ export {
   DEFAULT_LABEL_REGEX,
 } from './options';
 export type {
+  ISigilInstance,
+  ISigilStatic,
   ISigil,
   TypedSigil,
   GetInstance,

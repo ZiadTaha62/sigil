@@ -18,8 +18,10 @@ export {
   REGISTRY,
 } from './options';
 export type {
-  GetInstance,
+  ISigilInstance,
+  ISigilStatic,
   ISigil,
+  GetInstance,
   SigilBrandOf,
   TypedSigil,
   SigilOptions,

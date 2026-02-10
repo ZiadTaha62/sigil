@@ -127,7 +127,10 @@ export interface SigilOptions {
  * @template L - Narrow string literal type representing the label.
  * @template P - Optinal parent to extend its '__SIGIL_BRAND__'.
  */
-interface ISigilStatic<L extends string = string, P extends Function = never> {
+export interface ISigilStatic<
+  L extends string = string,
+  P extends Function = never,
+> {
   /**
    * Compile-time nominal brand that encodes the class label `L` plus parent's brand keys `BrandOf<P>`.
    *
@@ -211,7 +214,7 @@ interface ISigilStatic<L extends string = string, P extends Function = never> {
  * @template L - Narrow string literal type for the label returned by `getSigilLabel`.
  * @template P - Optinal parent to extend its '__SIGIL_BRAND__'.
  */
-interface ISigilInstance<
+export interface ISigilInstance<
   L extends string = string,
   P extends Function = never,
 > {
