@@ -1,6 +1,6 @@
 {
   "name": "@vicin/sigil",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Lightweight TypeScript library for nominal identity classes",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
