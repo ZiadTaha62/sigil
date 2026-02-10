@@ -40,7 +40,7 @@ export function WithSigil<L extends string>(label?: L, opts?: SigilOptions) {
     l = label;
   } else l = generateRandomLabel();
 
-  return function (value: Function, context: ClassDecoratorContext) {
+  return function (value: Function, context: any) {
     // Only apply to class declarations
     if (context.kind !== 'class') return;
     if (!isSigilCtor(value))
@@ -48,7 +48,7 @@ export function WithSigil<L extends string>(label?: L, opts?: SigilOptions) {
         `[Sigil Error] 'WithSigil' decorator accept only Sigil classes but used on class ${value.name}`
       );
     // Attach sigil metadata to constructor (registers label, sets symbols, marks decorated)
-    decorateCtor(value, l);
+    decorateCtor(value, l, opts);
     // Development-only inheritance checks and potential autofill
     checkInheritance(value, opts);
   };

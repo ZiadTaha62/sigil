@@ -125,12 +125,9 @@ export interface SigilOptions {
  * predicates implemented by the `Sigilify` mixin.
  *
  * @template L - Narrow string literal type representing the label.
- * @template US - Optinal original Untyped Sigil constructor type being augmented.
+ * @template P - Optinal parent to extend its '__SIGIL_BRAND__'.
  */
-export interface ISigilStatic<
-  L extends string = string,
-  US extends Function = never,
-> {
+interface ISigilStatic<L extends string = string, P extends Function = never> {
   /**
    * Compile-time nominal brand that encodes the class label `L` plus parent's brand keys `BrandOf<P>`.
    *
@@ -142,7 +139,7 @@ export interface ISigilStatic<
    * Consumers should not read or set this property at runtime. It is used by helper
    * types (e.g. `SigilBrandOf`, `TypedSigil`) to extract/propagate compile-time brands.
    */
-  readonly __SIGIL_BRAND__: Prettify<{ [k in L]: true } & SigilBrandOf<US>>;
+  readonly __SIGIL_BRAND__: Prettify<{ [k in L]: true } & SigilBrandOf<P>>;
 
   /** Class-level label constant (human readable). */
   readonly SigilLabel: string;
@@ -212,11 +209,11 @@ export interface ISigilStatic<
  * The methods mirror the instance helpers injected by the mixin.
  *
  * @template L - Narrow string literal type for the label returned by `getSigilLabel`.
- * @template US - Optinal original Untyped Sigil constructor type being augmented.
+ * @template P - Optinal parent to extend its '__SIGIL_BRAND__'.
  */
-export interface ISigilInstance<
+interface ISigilInstance<
   L extends string = string,
-  US extends Function = never,
+  P extends Function = never,
 > {
   /**
    * Compile-time nominal brand that encodes the class label `L` plus parent's brand keys `BrandOf<P>`.
@@ -229,7 +226,7 @@ export interface ISigilInstance<
    * Consumers should not read or set this property at runtime. It is used by helper
    * types (e.g. `SigilBrandOf`, `TypedSigil`) to extract/propagate compile-time brands.
    */
-  readonly __SIGIL_BRAND__: Prettify<{ [k in L]: true } & SigilBrandOf<US>>;
+  readonly __SIGIL_BRAND__: Prettify<{ [k in L]: true } & SigilBrandOf<P>>;
   /** Returns human-readable sigil label of the class constructor. */
   getSigilLabel(): string;
   /** Returns runtime sigil type symbol of the class constructor. */
@@ -248,15 +245,52 @@ export interface ISigilInstance<
  * by `Sigilify`.
  *
  * @template L - Narrow string literal type for the label.
- * @template US - Optinal original Untyped Sigil constructor type being augmented.
+ * @template P - Optinal parent to extend its '__SIGIL_BRAND__'.
  */
 export type ISigil<
   L extends string = string,
-  US extends Function = never,
-> = Constructor<ISigilInstance<L, US>> & ISigilStatic<L, US>;
+  P extends Function = never,
+> = Constructor<ISigilInstance<L, P>> & ISigilStatic<L, P>;
 
 /** -----------------------------------------
- *  Helper sigil types
+ *  HOF pattern types
+ * ----------------------------------------- */
+
+/**
+ * Combine an existing sigil constructor type `S` with a **new** label `L`,
+ * while inheriting/propagating compile-time brands from an optional parent sigil `P`.
+ *
+ * @template S - The original Untyped Sigil constructor type being augmented.
+ * @template L - The new label literal to associate with the resulting constructor.
+ */
+export type TypedSigil<S extends Function, L extends string = string> = S &
+  AppendLabel<L> &
+  Constructor<AppendLabel<L>>;
+
+/**
+ * Generic helper extract instance of the class even in protected and private constructors.
+ */
+export type GetInstance<T> = T extends { prototype: infer R }
+  ? PrettifyBrand<R & { __SIGIL_BRAND__: SigilBrandOf<T> }>
+  : never;
+
+/** Helper to append label into a class. */
+type AppendLabel<L extends string> = {
+  readonly __SIGIL_BRAND__: Prettify<{ [K in L]: true }>;
+};
+
+/** -----------------------------------------
+ *  Manual pattern types
+ * ----------------------------------------- */
+
+/** Update '__SIGIL_BRAND__' field when manual typing is used. */
+export type UpdateSigilBrand<
+  L extends string,
+  P extends ISigilInstance,
+> = Prettify<SigilBrandOf<P> & { [K in L]: true }>;
+
+/** -----------------------------------------
+ *  Generic types
  * ----------------------------------------- */
 
 /**
@@ -272,30 +306,9 @@ export type ISigil<
  *   collapses it to an empty record.
  */
 export type SigilBrandOf<S> = IfNever<
-  S extends { readonly __SIGIL_BRAND__: infer Brand } ? Prettify<Brand> : never,
+  S extends { readonly __SIGIL_BRAND__: infer Brand } ? Brand : never,
   Record<string, true>
 >;
-
-/**
- * Combine an existing sigil constructor type `S` with a **new** label `L`,
- * while inheriting/propagating compile-time brands from an optional parent sigil `P`.
- *
- * @template US - The original Untyped Sigil constructor type being augmented.
- * @template L - The new label literal to associate with the resulting constructor.
- */
-export type TypedSigil<US extends Function, L extends string = string> = US &
-  ISigil<L, US>;
-
-/**
- * Generic helper extract instance of the class even in protected and private constructors.
- */
-export type GetInstance<T> = T extends { prototype: infer R }
-  ? Prettify<R & { __SIGIL_BRAND__: SigilBrandOf<T> }>
-  : never;
-
-/** -----------------------------------------
- *  Generic types
- * ----------------------------------------- */
 
 /**
  * Generic type for class constructors used by the Sigil utilities.
@@ -310,8 +323,13 @@ export type Constructor<T = object, P extends any[] = any[]> = new (
   ...args: P
 ) => T;
 
-/** Helper type to prettify value. */
-type Prettify<T> = { [K in keyof T]: T[K] } & {};
+/** Helper type to prettify value */
+export type Prettify<T> = { [K in keyof T]: T[K] } & {};
+
+/** Helper type to prettify value, handles nested '__SIGIL_BRAND__' field */
+export type PrettifyBrand<T> = {
+  [K in keyof T]: K extends '__SIGIL_BRAND__' ? PrettifyBrand<T[K]> : T[K];
+} & {};
 
 /** Helper type to replace 'never' with another type */
 type IfNever<T, R = {}> = [T] extends [never] ? R : T;

@@ -11,7 +11,7 @@ import {
 } from './helpers';
 import { OPTIONS } from './options';
 import { __LABEL__, __TYPE__, __TYPE_LINEAGE__, __TYPE_SET__ } from './symbols';
-import type { Constructor, ISigil, SigilOptions } from './types';
+import type { Constructor, ISigil, SigilOptions, Prettify } from './types';
 
 /**
  * Mixin factory that augments an existing class with Sigil runtime metadata and
@@ -32,9 +32,9 @@ import type { Constructor, ISigil, SigilOptions } from './types';
  * @returns A new abstract constructor that extends `Base` and includes Sigil statics/instance methods.
  * @throws Error if `Base` is already sigilized.
  */
-export function Sigilify(
-  Base: Constructor,
-  label?: string,
+export function Sigilify<B extends Constructor, L extends string>(
+  Base: B,
+  label?: L,
   opts?: SigilOptions
 ) {
   // if siglified throw
@@ -50,7 +50,24 @@ export function Sigilify(
 
   // extend actual class
   class Sigilified extends Base {
-    declare static readonly __SIGIL_BRAND__: Record<string, true>;
+    /**
+     * Compile-time nominal brand that encodes the class label `L` plus parent's brand keys `BrandOf<P>`.
+     *
+     * - Provides a *type-only* unique marker that makes instances nominally
+     *   distinct by label and allows propagation/merging of brand keys across inheritance.
+     * - Runtime: **no runtime value is required**; this property exists only for the type system.
+     *
+     * @remarks
+     * Consumers should not read or set this property at runtime. It is used by helper
+     * types (e.g. `SigilBrandOf`, `TypedSigil`) to extract/propagate compile-time brands.
+     */
+    declare static readonly __SIGIL_BRAND__: Prettify<
+      {
+        Sigil: true;
+      } & {
+        [K in L]: true;
+      }
+    >;
 
     /**
      * Class-level human-readable label constant for this sigil constructor.
@@ -93,7 +110,24 @@ export function Sigilify(
       return set;
     }
 
-    declare readonly __SIGIL_BRAND__: Record<string, true>;
+    /**
+     * Compile-time nominal brand that encodes the class label `L` plus parent's brand keys `BrandOf<P>`.
+     *
+     * - Provides a *type-only* unique marker that makes instances nominally
+     *   distinct by label and allows propagation/merging of brand keys across inheritance.
+     * - Runtime: **no runtime value is required**; this property exists only for the type system.
+     *
+     * @remarks
+     * Consumers should not read or set this property at runtime. It is used by helper
+     * types (e.g. `SigilBrandOf`, `TypedSigil`) to extract/propagate compile-time brands.
+     */
+    declare readonly __SIGIL_BRAND__: Prettify<
+      {
+        Sigil: true;
+      } & {
+        [K in L]: true;
+      }
+    >;
 
     constructor(...args: any[]) {
       super(...args);
@@ -250,7 +284,7 @@ export function Sigilify(
   }
 
   // Attach sigil metadata to constructor (registers label, sets symbols, marks decorated)
-  decorateCtor(Sigilified, l);
+  decorateCtor(Sigilified, l, opts, true);
 
   // Mark the returned constructor as sigil (runtime flag) and as a base.
   markSigil(Sigilified);

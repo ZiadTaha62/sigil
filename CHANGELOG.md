@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## v1.2.0 2026-02-10
+
+## Added
+
+- Added new typing method (decorator with brand field update)
+- Added type to exported base classes
+
+### Changed
+
+- Simplified types
+- Fix type bug in `Sigilify`
+- Updated `Sigilify` to return typed class directly
+- Fix options propagation bug
+
+### Deprecated
+
+- `typed` higher order function as it has no use-case anymore
+- `typed` will be removed in v2.0.0
+
 ## v1.1.1 2026-02-09
 
 ### Changed

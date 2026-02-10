@@ -20,9 +20,8 @@ export {
 export type {
   GetInstance,
   ISigil,
-  ISigilInstance,
-  ISigilStatic,
   SigilBrandOf,
   TypedSigil,
   SigilOptions,
+  UpdateSigilBrand,
 } from './types';

@@ -45,7 +45,7 @@ export function withSigil<S extends Function, L extends string = string>(
 
   // decorate and check inheritance.
   const ctor = Class;
-  decorateCtor(ctor, l);
+  decorateCtor(ctor, l, opts);
   checkInheritance(ctor, opts);
 
   return Class;
@@ -60,6 +60,7 @@ export function withSigil<S extends Function, L extends string = string>(
  * Use this when the runtime metadata is already present (for example the class
  * is already decorated or was created via `Sigilify`).
  *
+ * @deprecated
  * @typeParam S - Constructor type (should be an ISigil).
  * @typeParam L - Label literal to associate at compile-time.
  * @param Class - The constructor to assert as typed sigil.
@@ -85,7 +86,7 @@ export function typed<S extends Function, L extends string = string>(
         `[Sigil Error][typed] runtime label "${runtimeLabel}" does not match asserted label "${label}".`
       );
   }
-  return Class as TypedSigil<S, L>;
+  return Class as unknown as TypedSigil<S, L>;
 }
 
 /**
@@ -126,8 +127,8 @@ export function withSigilTyped<S extends Function, L extends string = string>(
 
   // decorate and check inheritance.
   const ctor = Class;
-  decorateCtor(ctor, l);
+  decorateCtor(ctor, l, opts);
   checkInheritance(ctor, opts);
 
-  return Class as TypedSigil<S, L>;
+  return Class as unknown as TypedSigil<S, L>;
 }

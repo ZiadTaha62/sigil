@@ -67,6 +67,16 @@ module.exports = [
   },
 
   {
+    files: ['src/temp.ts'],
+    rules: {
+      'prettier/prettier': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      'no-console': 'off',
+    },
+  },
+
+  {
     plugins: { prettier },
     rules: prettier.configs.recommended.rules,
   },

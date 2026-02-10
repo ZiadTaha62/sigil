@@ -42,8 +42,19 @@
   "keywords": [
     "typescript",
     "nominal-typing",
+    "runtime-identity",
+    "class-identity",
+    "instanceof",
+    "cross-bundle",
+    "symbol",
+    "registry",
+    "label-based",
+    "type-branding",
+    "type-safe",
+    "inheritance",
+    "domain-driven-design",
     "ddd",
-    "class-registry"
+    "monorepo"
   ],
   "author": "Ziad ziadtaha62@gmail.com",
   "license": "MIT",

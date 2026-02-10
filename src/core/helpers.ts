@@ -9,7 +9,7 @@ import {
   __TYPE_SET__,
   __TYPE__,
 } from './symbols';
-import type { ISigil, ISigilInstance, SigilOptions } from './types';
+import type { ISigil, SigilOptions } from './types';
 
 /** -----------------------------------------
  *  High level helpers
@@ -38,7 +38,8 @@ import type { ISigil, ISigilInstance, SigilOptions } from './types';
 export function decorateCtor(
   ctor: Function,
   label: string,
-  opts?: Pick<SigilOptions, 'devMarker' | 'storeConstructor'>
+  opts?: Pick<SigilOptions, 'devMarker' | 'storeConstructor'>,
+  isMixin: boolean = false
 ) {
   // if already decorated throw error
   if (isDecorated(ctor))
@@ -64,11 +65,18 @@ export function decorateCtor(
     writable: false,
   });
 
-  // compute type chain from parent (safe if parent hasn't been augmented yet — uses existing value or empty)
+  // get parent chain (safe if parent hasn't been augmented yet — uses existing value or empty)
   const parent = Object.getPrototypeOf(ctor);
   const parentChain =
     parent && parent[__TYPE_LINEAGE__] ? parent[__TYPE_LINEAGE__] : [];
-  const ctorChain = [...parentChain, symbol];
+
+  // generate Ctor chain, if mixin (Sigilify function) then append 'Sigil' at the start
+  const ctorChain =
+    isMixin && label !== 'Sigil' //
+      ? [Symbol.for('Sigil'), ...parentChain, symbol]
+      : [...parentChain, symbol];
+
+  // attach symbol lineage and set
   Object.defineProperty(ctor, __TYPE_LINEAGE__, {
     value: ctorChain,
     configurable: false,
@@ -293,11 +301,11 @@ export function markInheritanceChecked(ctor: Function) {
  * This is a lightweight check that verifies the presence of an internal
  * symbol attached to the constructor.
  *
- * @param value - Value to test.
+ * @param ctor - Constructor to test.
  * @returns `true` if `value` is a sigil constructor, otherwise `false`.
  */
-export function isSigilCtor(value: unknown): value is ISigil {
-  return typeof value === 'function' && (value as any)[__SIGIL__] === true;
+export function isSigilCtor(ctor: unknown): ctor is ISigil {
+  return typeof ctor === 'function' && (ctor as any)[__SIGIL__] === true;
 }
 
 /**
@@ -310,7 +318,7 @@ export function isSigilCtor(value: unknown): value is ISigil {
  * @param obj - The value to test.
  * @returns `true` if `obj` is an instance produced by a sigil constructor.
  */
-export function isSigilInstance(obj: unknown): obj is ISigilInstance {
+export function isSigilInstance(obj: unknown): obj is InstanceType<ISigil> {
   if (!obj || typeof obj !== 'object') return false;
   const ctor = getConstructor(obj);
   return isSigilCtor(ctor);
@@ -324,7 +332,7 @@ export function isSigilInstance(obj: unknown): obj is ISigilInstance {
  * @param ctor - Constructor to check.
  * @returns `true` if `ctor` is a sigil base constructor.
  */
-export function isSigilBaseCtor(ctor: Function): boolean {
+export function isSigilBaseCtor(ctor: Function): ctor is ISigil {
   return Object.hasOwn(ctor, __SIGIL_BASE__);
 }
 
@@ -336,7 +344,7 @@ export function isSigilBaseCtor(ctor: Function): boolean {
  * @param obj - The object to test.
  * @returns `true` if `obj` is an instance of a sigil base constructor.
  */
-export function isSigilBaseInstance(obj: unknown): obj is ISigilInstance {
+export function isSigilBaseInstance(obj: unknown): obj is InstanceType<ISigil> {
   if (!obj || typeof obj !== 'object') return false;
   const ctor = getConstructor(obj);
   return isSigilBaseCtor(ctor);

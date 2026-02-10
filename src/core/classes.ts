@@ -7,6 +7,7 @@ import { Sigilify } from './mixin';
  * class for other sigil classes or for debugging/inspection.
  */
 export const Sigil = Sigilify(class {}, 'Sigil');
+export type Sigil = InstanceType<typeof Sigil>;
 
 /**
  * A sigil variant of the built-in `Error` constructor used by the library
@@ -16,3 +17,4 @@ export const Sigil = Sigilify(class {}, 'Sigil');
  * runtime checks (e.g. `SigilError.isOfType(someError)`).
  */
 export const SigilError = Sigilify(Error, 'SigilError');
+export type SigilError = InstanceType<typeof SigilError>;
