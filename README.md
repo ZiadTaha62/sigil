@@ -94,7 +94,7 @@ After opting into the `Sigil` contract, labels are passed to child classes to un
 
 ##### Decorator pattern
 
-Apply a label with the `@WithSigil` decorator. This is handy for small classes or when you prefer decorator syntax.
+Apply a label with the `@WithSigil` decorator:
 
 ```ts
 import { Sigil, WithSigil } from '@vicin/sigil';
@@ -103,11 +103,9 @@ import { Sigil, WithSigil } from '@vicin/sigil';
 class User extends Sigil {}
 ```
 
-> Note: When extending an already sigilified class (for example `Sigil`), you must decorate the subclass or use the HOF helpers in DEV mode unless you configured the library otherwise.
-
 ##### HOF (Higher-Order Function) pattern
 
-HOFs work well in many build setups and are idempotent-safe for HMR flows.
+Apply a label using HOF as `withSigil` or `withSigilTyped`:
 
 ```ts
 import { Sigil, withSigil } from '@vicin/sigil';
@@ -118,6 +116,8 @@ const User = withSigil(_User, '@myorg/mypkg.User');
 const user = new User();
 console.log(User.SigilLabel); // "@myorg/mypkg.User"
 ```
+
+> Note: When extending an already sigilified class (for example `Sigil`), you must decorate the subclass or use the HOF helpers in DEV mode unless you configured the library otherwise.
 
 ### Minimal “first-run” example
 
