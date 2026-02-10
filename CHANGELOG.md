@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.6] - 2026-02-11
+
+### Changed
+
+- Fixed type bug in 'isOfType'
+
 ## [1.2.5] - 2026-02-10
 
 ### Changed

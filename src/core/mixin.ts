@@ -11,7 +11,13 @@ import {
 } from './helpers';
 import { OPTIONS } from './options';
 import { __LABEL__, __TYPE__, __TYPE_LINEAGE__, __TYPE_SET__ } from './symbols';
-import type { Constructor, ISigil, SigilOptions, Prettify } from './types';
+import type {
+  Constructor,
+  ISigil,
+  SigilOptions,
+  Prettify,
+  GetInstance,
+} from './types';
 
 /**
  * Mixin factory that augments an existing class with Sigil runtime metadata and
@@ -167,16 +173,13 @@ export function Sigilify<B extends Constructor, L extends string>(
      * @param other - The object to test.
      * @returns `true` if `other` is an instance of this type or a subtype.
      */
-    static isOfType<T extends ISigil>(
-      this: T,
-      other: unknown
-    ): other is InstanceType<T> {
+    static isOfType<T>(this: T, other: unknown): other is GetInstance<T> {
       if (!isSigilInstance(other)) return false;
 
       const otherCtor = getConstructor(other);
       if (!otherCtor) return false;
       const otherSet = otherCtor[__TYPE_SET__] as Set<symbol> | undefined;
-      return !!otherSet && otherSet.has(this.SigilType);
+      return !!otherSet && otherSet.has((this as any).SigilType);
     }
 
     /**
@@ -191,10 +194,7 @@ export function Sigilify<B extends Constructor, L extends string>(
      * @param other - The object to test.
      * @returns `true` if `other` has an identical lineage up to the length of this constructor's lineage.
      */
-    static isOfTypeStrict<T extends ISigil>(
-      this: T,
-      other: unknown
-    ): other is InstanceType<T> {
+    static isOfTypeStrict<T>(this: T, other: unknown): other is GetInstance<T> {
       if (!isSigilInstance(other)) return false;
 
       const otherCtor = getConstructor(other);
