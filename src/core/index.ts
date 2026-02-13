@@ -9,7 +9,7 @@ export {
   isSigilCtor,
   isSigilInstance,
 } from './helpers';
-export { Sigilify } from './mixin';
+export { Sigilify, SigilifyAbstract } from './mixin';
 export {
   updateOptions,
   DEFAULT_LABEL_REGEX,

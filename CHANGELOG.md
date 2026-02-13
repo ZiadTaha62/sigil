@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.7] - 2026-02-13
+
+### Added
+
+- Support for `abstract` classes using `SigilifyAbstract` factory.
+
 ## [1.2.6] - 2026-02-11
 
 ### Changed

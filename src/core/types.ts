@@ -235,17 +235,13 @@ export interface ISigilInstance<
 /**
  * Combined constructor + static interface for a sigil class.
  *
- * This composes the instance-side shape (Constructor<ISigilInstance<L>>) with
- * the static-side interface (ISigilStatic<L>), matching the runtime shape added
- * by `Sigilify`.
- *
  * @template L - Narrow string literal type for the label.
  * @template P - Optinal parent to extend its '__SIGIL_BRAND__'.
  */
 export type ISigil<
   L extends string = string,
   P extends Function = never,
-> = Constructor<ISigilInstance<L, P>> & ISigilStatic<L, P>;
+> = ConstructorAbstract<ISigilInstance<L, P>> & ISigilStatic<L, P>;
 
 /** -----------------------------------------
  *  HOF pattern types
@@ -260,7 +256,7 @@ export type ISigil<
  */
 export type TypedSigil<S extends Function, L extends string = string> = S &
   AppendLabel<L> &
-  Constructor<AppendLabel<L>>;
+  ConstructorAbstract<AppendLabel<L>>;
 
 /**
  * Generic helper extract instance of the class even in protected and private constructors.
@@ -317,6 +313,20 @@ export type SigilBrandOf<S> = IfNever<
 export type Constructor<T = object, P extends any[] = any[]> = new (
   ...args: P
 ) => T;
+
+/**
+ * Generic type for class constructors used by the Sigil utilities. for 'abstract classes'.
+ *
+ * - `T` is the instance type produced by the constructor.
+ * - `P` is the tuple of parameter types accepted by the constructor.
+ *
+ * @template T - Instance type produced by the constructor (defaults to `object`).
+ * @template P - Parameter tuple type for the constructor.
+ */
+export type ConstructorAbstract<
+  T = object,
+  P extends any[] = any[],
+> = abstract new (...args: P) => T;
 
 /** Helper type to prettify value */
 export type Prettify<T> = { [K in keyof T]: T[K] } & {};

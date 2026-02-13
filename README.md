@@ -86,6 +86,18 @@ class User extends Sigil {}
 const MyClass = Sigilify(class {}, '@myorg/mypkg.MyClass');
 ```
 
+If your class is marked with `abstract`:
+
+```ts
+import { Sigil, SigilifyAbstract } from '@vicin/sigil';
+
+// Using the pre-sigilified base class:
+abstract class User extends Sigil {}
+
+// Or use Sigilify when you want an ad-hoc class:
+const MyClass = SigilifyAbstract(abstract class {}, '@myorg/mypkg.MyClass');
+```
+
 This adds runtime metadata to the constructor and allows you to use runtime helpers, see [API reference](#api-reference).
 
 #### Extend `Sigil` classes
@@ -351,8 +363,9 @@ class X extends Sigil {
 
 ### Primary Exports
 
-- **Mixin:**
+- **Mixins:**
   - `Sigilify(Base, label?, opts?)`
+  - `SigilifyAbstract(Base, label?, opts?)`
 
 - **Classes:**
   - `Sigil`
