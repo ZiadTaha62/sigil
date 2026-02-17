@@ -184,8 +184,7 @@ export class SigilRegistry {
    * @param newRegistry - New Set<string> instance to use as the active registry, or `null` to disable checks.
    */
   replaceRegistry(newRegistry: Map<string, ISigil | null> | null): void {
-    if (newRegistry)
-      updateOptions({ registry: new SigilRegistry(newRegistry) });
+    if (newRegistry) updateOptions({ registry: new SigilRegistry(newRegistry) });
     else updateOptions({ registry: newRegistry });
   }
 
@@ -247,13 +246,8 @@ export class SigilRegistry {
    * @param callback - Function invoked with `(ctor, label)` for each entry.
    * @param thisArg - Optional `this` context for the callback.
    */
-  forEach(
-    callback: (ctor: ISigil | null, label: string) => void,
-    thisArg?: any
-  ): void {
-    this._registry.forEach((ctor, label) =>
-      callback.call(thisArg, ctor, label)
-    );
+  forEach(callback: (ctor: ISigil | null, label: string) => void, thisArg?: any): void {
+    this._registry.forEach((ctor, label) => callback.call(thisArg, ctor, label));
   }
 
   /**
@@ -339,10 +333,7 @@ export const DEFAULT_LABEL_REGEX = /^@[\w-]+(?:\/[\w-]+)*\.[A-Z][A-Za-z0-9]*$/;
  * @param opts - Partial options to merge into the global `OPTIONS` object.
  * @param mergeRegistries - Boolean to merge old registry into new one directly, default is 'true'.
  */
-export const updateOptions = (
-  opts: SigilOptions,
-  mergeRegistries: boolean = true
-): void => {
+export const updateOptions = (opts: SigilOptions, mergeRegistries: boolean = true): void => {
   // apply side effects
   applyBeforeSideEffects(OPTIONS, opts, mergeRegistries);
   // update options

@@ -39,9 +39,7 @@ export const __DECORATED__ = Symbol.for('@Sigil.__DECORATED__');
  * @internal
  * @constant {symbol}
  */
-export const __INHERITANCE_CHECKED__ = Symbol.for(
-  '@Sigil.__INHERITANCE_CHECKED__'
-);
+export const __INHERITANCE_CHECKED__ = Symbol.for('@Sigil.__INHERITANCE_CHECKED__');
 
 /**
  * Symbol used to store the human-readable label for a sigil constructor.

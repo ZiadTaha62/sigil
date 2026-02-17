@@ -27,10 +27,14 @@ type Row = {
   'instanceof per-op ms': number;
   'sigil instanceof total ms': number;
   'sigil instanceof per-op ms': number;
-  'isOfType total ms': number;
-  'isOfType per-op ms': number;
-  'isOfTypeStrict total ms': number;
-  'isOfTypeStrict per-op ms': number;
+  'isOfType ctor total ms': number;
+  'isOfType ctor per-op ms': number;
+  'isOfTypeStrict ctor total ms': number;
+  'isOfTypeStrict ctor per-op ms': number;
+  'isOfType instance total ms': number;
+  'isOfType instance per-op ms': number;
+  'isOfTypeStrict instance total ms': number;
+  'isOfTypeStrict instance per-op ms': number;
 };
 
 function nowNs(): bigint {
@@ -39,9 +43,7 @@ function nowNs(): bigint {
 const hrToMs = (ns: bigint) => Number(ns) / 1_000_000;
 
 function uniqueLabel(base: string) {
-  return `${base}-${Date.now().toString(36)}-${Math.random()
-    .toString(36)
-    .slice(2, 8)}`;
+  return `${base}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 /** Build a plain inheritance chain of given depth.
@@ -128,7 +130,7 @@ describe('Perf: instanceof vs isOfType vs isOfTypeStrict', () => {
       // measure plain instanceof
       const plainInstanceOfMs = benchCheck(plainInstanceOfFn, CHECK_ITERATIONS);
 
-      // === Sigil chain ===
+      // === Sigil chain ctor ===
       const sig = buildSigilChain(depth);
 
       // 3 checks for sigil:
@@ -138,18 +140,36 @@ describe('Perf: instanceof vs isOfType vs isOfTypeStrict', () => {
       };
 
       // 2) isOfType
-      const isOfTypeFn = () => {
+      const isOfTypeCtorFn = () => {
         sig.BaseCtor.isOfType(sig.instance);
       };
 
       // 3) isOfTypeStrict
-      const isOfTypeStrictFn = () => {
+      const isOfTypeStrictCtorFn = () => {
         sig.BaseCtor.isOfTypeStrict(sig.instance);
       };
 
       const sigInstanceOfMs = benchCheck(sigInstanceOfFn, CHECK_ITERATIONS);
-      const isOfTypeMs = benchCheck(isOfTypeFn, CHECK_ITERATIONS);
-      const isOfTypeStrictMs = benchCheck(isOfTypeStrictFn, CHECK_ITERATIONS);
+      const isOfTypeCtorMs = benchCheck(isOfTypeCtorFn, CHECK_ITERATIONS);
+      const isOfTypeStricCortMs = benchCheck(isOfTypeStrictCtorFn, CHECK_ITERATIONS);
+
+      // === Sigil chain instance ===
+      const sigInst = new sig.BaseCtor();
+
+      // 2) isOfType
+      const isOfTypeInstFn = () => {
+        sigInst.isOfType(sig.instance);
+      };
+
+      // 3) isOfTypeStrict
+      const isOfTypeInstCtorFn = () => {
+        sigInst.isOfTypeStrict(sig.instance);
+      };
+
+      const isOfTypeInstMs = benchCheck(isOfTypeInstFn, CHECK_ITERATIONS);
+      const isOfTypeStricInstMs = benchCheck(isOfTypeInstCtorFn, CHECK_ITERATIONS);
+
+      // Push results
 
       rows.push({
         scenario: `depth ${depth}`,
@@ -157,10 +177,14 @@ describe('Perf: instanceof vs isOfType vs isOfTypeStrict', () => {
         'instanceof per-op ms': plainInstanceOfMs / CHECK_ITERATIONS,
         'sigil instanceof total ms': sigInstanceOfMs,
         'sigil instanceof per-op ms': sigInstanceOfMs / CHECK_ITERATIONS,
-        'isOfType total ms': isOfTypeMs,
-        'isOfType per-op ms': isOfTypeMs / CHECK_ITERATIONS,
-        'isOfTypeStrict total ms': isOfTypeStrictMs,
-        'isOfTypeStrict per-op ms': isOfTypeStrictMs / CHECK_ITERATIONS,
+        'isOfType ctor total ms': isOfTypeCtorMs,
+        'isOfType ctor per-op ms': isOfTypeCtorMs / CHECK_ITERATIONS,
+        'isOfTypeStrict ctor total ms': isOfTypeStricCortMs,
+        'isOfTypeStrict ctor per-op ms': isOfTypeStricCortMs / CHECK_ITERATIONS,
+        'isOfType instance total ms': isOfTypeInstMs,
+        'isOfType instance per-op ms': isOfTypeInstMs / CHECK_ITERATIONS,
+        'isOfTypeStrict instance total ms': isOfTypeStricInstMs,
+        'isOfTypeStrict instance per-op ms': isOfTypeStricInstMs / CHECK_ITERATIONS,
       });
 
       // small pause/cleanup between scenarios
@@ -175,17 +199,25 @@ describe('Perf: instanceof vs isOfType vs isOfTypeStrict', () => {
         'instanceof total ms': r['instanceof total ms'].toFixed(3),
         'instanceof per-op ms': r['instanceof per-op ms'].toFixed(6),
         'sigil instanceof total ms': r['sigil instanceof total ms'].toFixed(3),
-        'sigil instanceof per-op ms':
-          r['sigil instanceof per-op ms'].toFixed(6),
+        'sigil instanceof per-op ms': r['sigil instanceof per-op ms'].toFixed(6),
       }))
     );
     console.table(
       rows.map((r) => ({
         scenario: r.scenario,
-        'isOfType total ms': r['isOfType total ms'].toFixed(3),
-        'isOfType per-op ms': r['isOfType per-op ms'].toFixed(6),
-        'isOfTypeStrict total ms': r['isOfTypeStrict total ms'].toFixed(3),
-        'isOfTypeStrict per-op ms': r['isOfTypeStrict per-op ms'].toFixed(6),
+        'isOfType ctor total ms': r['isOfType ctor total ms'].toFixed(3),
+        'isOfType ctor per-op ms': r['isOfType ctor per-op ms'].toFixed(6),
+        'isOfTypeStrict ctor total ms': r['isOfTypeStrict ctor total ms'].toFixed(3),
+        'isOfTypeStrict ctor per-op ms': r['isOfTypeStrict ctor per-op ms'].toFixed(6),
+      }))
+    );
+    console.table(
+      rows.map((r) => ({
+        scenario: r.scenario,
+        'isOfType instance total ms': r['isOfType instance total ms'].toFixed(3),
+        'isOfType instance per-op ms': r['isOfType instance per-op ms'].toFixed(6),
+        'isOfTypeStrict instance total ms': r['isOfTypeStrict instance total ms'].toFixed(3),
+        'isOfTypeStrict instance per-op ms': r['isOfTypeStrict instance per-op ms'].toFixed(6),
       }))
     );
 
@@ -210,7 +242,7 @@ describe('Perf: instanceof vs isOfType vs isOfTypeStrict', () => {
 //  │ 3       │ 'depth 10' │ '9.179'             │ '0.000046'           │ '13.091'                  │ '0.000065'                 │
 //  └─────────┴────────────┴─────────────────────┴──────────────────────┴───────────────────────────┴────────────────────────────┘
 //  ┌─────────┬────────────┬───────────────────┬────────────────────┬─────────────────────────┬──────────────────────────┐
-//  │ (index) │ scenario   │ isOfType total ms │ isOfType per-op ms │ isOfTypeStrict total ms │ isOfTypeStrict per-op ms │
+//  │ (index) │ scenario   │ isOfType ctor total ms │ isOfType ctor per-op ms │ isOfTypeStrict ctor total ms │ isOfTypeStrict ctor per-op ms │
 //  ├─────────┼────────────┼───────────────────┼────────────────────┼─────────────────────────┼──────────────────────────┤
 //  │ 0       │ 'depth 0'  │ '4.570'           │ '0.000023'         │ '5.059'                 │ '0.000025'               │
 //  │ 1       │ 'depth 3'  │ '8.342'           │ '0.000042'         │ '9.765'                 │ '0.000049'               │

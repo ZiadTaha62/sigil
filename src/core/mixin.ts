@@ -42,8 +42,7 @@ export function Sigilify<B extends Constructor, L extends string>(
   opts?: SigilOptions
 ) {
   // if siglified throw
-  if (isSigilCtor(Base))
-    throw new Error(`[Sigil Error] 'Sigilify(${label})' already siglified.`);
+  if (isSigilCtor(Base)) throw new Error(`[Sigil Error] 'Sigilify(${label})' already siglified.`);
 
   // generate random label if not passed and verify it
   let l: string;
@@ -136,9 +135,7 @@ export function Sigilify<B extends Constructor, L extends string>(
       const ctor = getConstructor(this);
       if (!ctor) {
         if (opts?.devMarker ?? OPTIONS.devMarker)
-          throw new Error(
-            `[Sigil Error] 'Sigilify(${label})' instance without constructor`
-          );
+          throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
         return;
       }
 
@@ -159,10 +156,6 @@ export function Sigilify<B extends Constructor, L extends string>(
     /**
      * Check whether `other` is (or inherits from) the type represented by the calling constructor.
      *
-     * Implementation detail:
-     * - Uses the other instance's `__TYPE_SET__` for O(1) membership test.
-     * - O(1) and reliable as long as `OPTIONS.skipLabelInheritanceCheck` is `false`.
-     *
      * This replaces `instanceof` so that checks remain valid across bundles/realms
      * and when subclassing.
      *
@@ -173,19 +166,13 @@ export function Sigilify<B extends Constructor, L extends string>(
      */
     static isOfType<T>(this: T, other: unknown): other is GetInstance<T> {
       if (!isSigilInstance(other)) return false;
-
-      const otherCtor = getConstructor(other);
-      if (!otherCtor) return false;
-      const otherSet = otherCtor[__TYPE_SET__] as Set<symbol> | undefined;
-      return !!otherSet && otherSet.has((this as any).SigilType);
+      const otherSet = getConstructor(other)?.[__TYPE_SET__];
+      const thisType = (this as any)[__TYPE__];
+      return !!otherSet && otherSet.has(thisType);
     }
 
     /**
      * Strict lineage check: compares the type symbol lineage arrays element-by-element.
-     *
-     * Implementation detail:
-     * - Works in O(n) time where n is the depth of the lineage.
-     * - Reliable when `OPTIONS.skipLabelInheritanceCheck` is `false`.
      *
      * @typeParam T - The calling constructor type.
      * @param this - The constructor performing the check.
@@ -194,14 +181,43 @@ export function Sigilify<B extends Constructor, L extends string>(
      */
     static isOfTypeStrict<T>(this: T, other: unknown): other is GetInstance<T> {
       if (!isSigilInstance(other)) return false;
-
-      const otherCtor = getConstructor(other);
-      if (!otherCtor) return false;
-      const otherLineage = otherCtor[__TYPE_LINEAGE__] as readonly symbol[];
+      const otherLineage = getConstructor(other)?.[__TYPE_LINEAGE__];
       const thisLineage = (this as any)[__TYPE_LINEAGE__] as readonly symbol[];
-      return (
-        !!otherLineage && thisLineage.every((s, i) => s === otherLineage[i])
-      );
+      return !!otherLineage && thisLineage.every((s, i) => s === otherLineage[i]);
+    }
+
+    /**
+     * Check whether `other` is (or inherits from) the type instance.
+     *
+     * Allows 'instanceof' like checks but in instances.
+     *
+     * @typeParam T - The instance type.
+     * @param this - The instance performing the check.
+     * @param other - The object to test.
+     * @returns `true` if `other` is the same instance of this type or a subtype.
+     */
+    isOfType<T>(this: T, other: unknown): other is GetInstance<T> {
+      if (!isSigilInstance(other)) return false;
+      const otherSet = getConstructor(other)?.[__TYPE_SET__];
+      const thisType = getConstructor(this)[__TYPE__];
+      return !!otherSet && otherSet.has(thisType);
+    }
+
+    /**
+     * Strict lineage check: compares the type symbol lineage arrays element-by-element.
+     *
+     * Allows 'instanceof' like checks but in instances.
+     *
+     * @typeParam T - The instance type.
+     * @param this - The instance performing the check.
+     * @param other - The object to test.
+     * @returns `true` if `other` has an identical lineage up to the length of this instance's lineage.
+     */
+    isOfTypeStrict<T>(this: T, other: unknown): other is GetInstance<this> {
+      if (!isSigilInstance(other)) return false;
+      const otherLineage = getConstructor(other)?.[__TYPE_LINEAGE__];
+      const thisLineage = getConstructor(this)?.[__TYPE_LINEAGE__] as readonly symbol[];
+      return !!otherLineage && thisLineage.every((s, i) => s === otherLineage[i]);
     }
 
     /**
@@ -213,9 +229,7 @@ export function Sigilify<B extends Constructor, L extends string>(
       const ctor = getConstructor(this);
       if (!ctor) {
         if (opts?.devMarker ?? OPTIONS.devMarker)
-          throw new Error(
-            `[Sigil Error] 'Sigilify(${label})' instance without constructor`
-          );
+          throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
         return '@Sigil.unknown';
       }
       return ctor.SigilLabel;
@@ -230,9 +244,7 @@ export function Sigilify<B extends Constructor, L extends string>(
       const ctor = getConstructor(this);
       if (!ctor) {
         if (opts?.devMarker ?? OPTIONS.devMarker)
-          throw new Error(
-            `[Sigil Error] 'Sigilify(${label})' instance without constructor`
-          );
+          throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
         return Symbol.for('@Sigil.unknown');
       }
       return ctor.SigilType;
@@ -247,9 +259,7 @@ export function Sigilify<B extends Constructor, L extends string>(
       const ctor = getConstructor(this);
       if (!ctor) {
         if (opts?.devMarker ?? OPTIONS.devMarker)
-          throw new Error(
-            `[Sigil Error] 'Sigilify(${label})' instance without constructor`
-          );
+          throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
         return [Symbol.for('@Sigil.unknown')];
       }
       return ctor.SigilTypeLineage;
@@ -264,9 +274,7 @@ export function Sigilify<B extends Constructor, L extends string>(
       const ctor = getConstructor(this);
       if (!ctor) {
         if (opts?.devMarker ?? OPTIONS.devMarker)
-          throw new Error(
-            `[Sigil Error] 'Sigilify(${label})' instance without constructor`
-          );
+          throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
         return new Set([Symbol.for('@Sigil.unknown')]);
       }
       return ctor.SigilTypeSet;
@@ -299,13 +307,13 @@ export function Sigilify<B extends Constructor, L extends string>(
  * @returns A new abstract constructor that extends `Base` and includes Sigil statics/instance methods.
  * @throws Error if `Base` is already sigilized.
  */
-export function SigilifyAbstract<
-  B extends ConstructorAbstract,
-  L extends string,
->(Base: B, label?: L, opts?: SigilOptions) {
+export function SigilifyAbstract<B extends ConstructorAbstract, L extends string>(
+  Base: B,
+  label?: L,
+  opts?: SigilOptions
+) {
   // if siglified throw
-  if (isSigilCtor(Base))
-    throw new Error(`[Sigil Error] 'Sigilify(${label})' already siglified.`);
+  if (isSigilCtor(Base)) throw new Error(`[Sigil Error] 'Sigilify(${label})' already siglified.`);
 
   // generate random label if not passed and verify it
   let l: string;
@@ -398,9 +406,7 @@ export function SigilifyAbstract<
       const ctor = getConstructor(this);
       if (!ctor) {
         if (opts?.devMarker ?? OPTIONS.devMarker)
-          throw new Error(
-            `[Sigil Error] 'Sigilify(${label})' instance without constructor`
-          );
+          throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
         return;
       }
 
@@ -434,12 +440,10 @@ export function SigilifyAbstract<
      * @returns `true` if `other` is an instance of this type or a subtype.
      */
     static isOfType<T>(this: T, other: unknown): other is GetInstance<T> {
-      if (!isSigilInstance(other)) return false;
-
-      const otherCtor = getConstructor(other);
-      if (!otherCtor) return false;
-      const otherSet = otherCtor[__TYPE_SET__] as Set<symbol> | undefined;
-      return !!otherSet && otherSet.has((this as any).SigilType);
+      if (!isSigilInstance(other) || !isSigilCtor(this)) return false;
+      const otherSet = getConstructor(other)?.[__TYPE_SET__];
+      const thisType = (this as any)[__TYPE__];
+      return !!otherSet && otherSet.has(thisType);
     }
 
     /**
@@ -455,15 +459,44 @@ export function SigilifyAbstract<
      * @returns `true` if `other` has an identical lineage up to the length of this constructor's lineage.
      */
     static isOfTypeStrict<T>(this: T, other: unknown): other is GetInstance<T> {
-      if (!isSigilInstance(other)) return false;
-
-      const otherCtor = getConstructor(other);
-      if (!otherCtor) return false;
-      const otherLineage = otherCtor[__TYPE_LINEAGE__] as readonly symbol[];
+      if (!isSigilInstance(other) || !isSigilCtor(this)) return false;
+      const otherLineage = getConstructor(other)?.[__TYPE_LINEAGE__];
       const thisLineage = (this as any)[__TYPE_LINEAGE__] as readonly symbol[];
-      return (
-        !!otherLineage && thisLineage.every((s, i) => s === otherLineage[i])
-      );
+      return !!otherLineage && thisLineage.every((s, i) => s === otherLineage[i]);
+    }
+
+    /**
+     * Check whether `other` is (or inherits from) the type instance.
+     *
+     * Allows 'instanceof' like checks but in instances.
+     *
+     * @typeParam T - The instance type.
+     * @param this - The instance performing the check.
+     * @param other - The object to test.
+     * @returns `true` if `other` is the same instance of this type or a subtype.
+     */
+    isOfType<T>(this: T, other: unknown): other is GetInstance<T> {
+      if (!isSigilInstance(other) || !isSigilInstance(this)) return false;
+      const otherSet = getConstructor(other)?.[__TYPE_SET__];
+      const thisType = getConstructor(this)[__TYPE__];
+      return !!otherSet && otherSet.has(thisType);
+    }
+
+    /**
+     * Strict lineage check: compares the type symbol lineage arrays element-by-element.
+     *
+     * Allows 'instanceof' like checks but in instances.
+     *
+     * @typeParam T - The instance type.
+     * @param this - The instance performing the check.
+     * @param other - The object to test.
+     * @returns `true` if `other` has an identical lineage up to the length of this instance's lineage.
+     */
+    isOfTypeStrict<T>(this: T, other: unknown): other is GetInstance<this> {
+      if (!isSigilInstance(other) || !isSigilInstance(this)) return false;
+      const otherLineage = getConstructor(other)?.[__TYPE_LINEAGE__];
+      const thisLineage = getConstructor(this)?.[__TYPE_LINEAGE__] as readonly symbol[];
+      return !!otherLineage && thisLineage.every((s, i) => s === otherLineage[i]);
     }
 
     /**
@@ -475,9 +508,7 @@ export function SigilifyAbstract<
       const ctor = getConstructor(this);
       if (!ctor) {
         if (opts?.devMarker ?? OPTIONS.devMarker)
-          throw new Error(
-            `[Sigil Error] 'Sigilify(${label})' instance without constructor`
-          );
+          throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
         return '@Sigil.unknown';
       }
       return ctor.SigilLabel;
@@ -492,9 +523,7 @@ export function SigilifyAbstract<
       const ctor = getConstructor(this);
       if (!ctor) {
         if (opts?.devMarker ?? OPTIONS.devMarker)
-          throw new Error(
-            `[Sigil Error] 'Sigilify(${label})' instance without constructor`
-          );
+          throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
         return Symbol.for('@Sigil.unknown');
       }
       return ctor.SigilType;
@@ -509,9 +538,7 @@ export function SigilifyAbstract<
       const ctor = getConstructor(this);
       if (!ctor) {
         if (opts?.devMarker ?? OPTIONS.devMarker)
-          throw new Error(
-            `[Sigil Error] 'Sigilify(${label})' instance without constructor`
-          );
+          throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
         return [Symbol.for('@Sigil.unknown')];
       }
       return ctor.SigilTypeLineage;
@@ -526,9 +553,7 @@ export function SigilifyAbstract<
       const ctor = getConstructor(this);
       if (!ctor) {
         if (opts?.devMarker ?? OPTIONS.devMarker)
-          throw new Error(
-            `[Sigil Error] 'Sigilify(${label})' instance without constructor`
-          );
+          throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
         return new Set([Symbol.for('@Sigil.unknown')]);
       }
       return ctor.SigilTypeSet;

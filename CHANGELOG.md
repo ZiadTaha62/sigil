@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-02-18
+
+### Added
+
+- `isOfType()` & `isOfTypeStrict()` now can be called from instances.
+
 ## [1.2.7] - 2026-02-13
 
 ### Added

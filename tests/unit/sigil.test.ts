@@ -148,7 +148,7 @@ describe('Sigil core runtime behavior', () => {
     expect(Y.SigilLabel).toMatch('@Sigil.auto-');
   });
 
-  test('lineage: subclass is recognized as subtype of base via isOfType', () => {
+  test('lineage: subclass is recognized as subtype of base via isOfType of constructors', () => {
     // create base
     class _Base extends Sigil {}
     const Base = withSigil(_Base, '@test/Base');
@@ -173,6 +173,33 @@ describe('Sigil core runtime behavior', () => {
     const typeSet = subInst.getSigilTypeSet();
     expect(typeSet.has(Base.SigilType)).toBe(true);
     expect(typeSet.has(Sub.SigilType)).toBe(true);
+  });
+
+  test('lineage: subclass is recognized as subtype of base via isOfType of instances', () => {
+    // create base
+    class _Base extends Sigil {}
+    const Base = withSigil(_Base, '@test/Base');
+
+    class _Sub extends Base {}
+    const Sub = withSigil(_Sub, '@test/Sub');
+
+    const subInst = new Sub();
+    const baseInst = new Base();
+
+    // Sub should be recognized as of Base type (subtype)
+    expect(baseInst.isOfType(subInst)).toBe(true);
+    // Base is not a strict subtype of Sub
+    expect(subInst.isOfType(baseInst)).toBe(false);
+
+    // isOfTypeStrict checks exact lineage (only true for same label)
+    // Base.isOfTypeStrict(Base) should be true; Sub.isOfTypeStrict(Base) should be false
+    expect(baseInst.isOfTypeStrict(baseInst)).toBe(true);
+    expect(subInst.isOfTypeStrict(baseInst)).toBe(false);
+
+    // instance-level sets
+    const typeSet = subInst.getSigilTypeSet();
+    expect(typeSet.has(baseInst.getSigilType())).toBe(true);
+    expect(typeSet.has(subInst.getSigilType())).toBe(true);
   });
 
   test('isSigilCtor and isSigilInstance helpers', () => {

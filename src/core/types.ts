@@ -127,10 +127,7 @@ export interface SigilOptions {
  * @template L - Narrow string literal type representing the label.
  * @template P - Optinal parent to extend its '__SIGIL_BRAND__'.
  */
-export interface ISigilStatic<
-  L extends string = string,
-  P extends Function = never,
-> {
+export interface ISigilStatic<L extends string = string, P extends Function = never> {
   /**
    * Compile-time nominal brand that encodes the class label `L` plus parent's brand keys `BrandOf<P>`.
    *
@@ -197,10 +194,7 @@ export interface ISigilStatic<
    * @param other - The object to test.
    * @returns A type guard asserting `other` is an instance whose lineage matches exactly.
    */
-  isOfTypeStrict<T extends ISigil>(
-    this: T,
-    other: unknown
-  ): other is InstanceType<T>;
+  isOfTypeStrict<T extends ISigil>(this: T, other: unknown): other is InstanceType<T>;
 }
 
 /**
@@ -210,10 +204,7 @@ export interface ISigilStatic<
  * @template L - Narrow string literal type for the label returned by `getSigilLabel`.
  * @template P - Optinal parent to extend its '__SIGIL_BRAND__'.
  */
-export interface ISigilInstance<
-  L extends string = string,
-  P extends Function = never,
-> {
+export interface ISigilInstance<L extends string = string, P extends Function = never> {
   /**
    * Compile-time nominal brand that encodes the class label `L` plus parent's brand keys `BrandOf<P>`.
    *
@@ -238,10 +229,10 @@ export interface ISigilInstance<
  * @template L - Narrow string literal type for the label.
  * @template P - Optinal parent to extend its '__SIGIL_BRAND__'.
  */
-export type ISigil<
-  L extends string = string,
-  P extends Function = never,
-> = ConstructorAbstract<ISigilInstance<L, P>> & ISigilStatic<L, P>;
+export type ISigil<L extends string = string, P extends Function = never> = ConstructorAbstract<
+  ISigilInstance<L, P>
+> &
+  ISigilStatic<L, P>;
 
 /** -----------------------------------------
  *  HOF pattern types
@@ -260,10 +251,11 @@ export type TypedSigil<S extends Function, L extends string = string> = S &
 
 /**
  * Generic helper extract instance of the class even in protected and private constructors.
+ * @remark Return same type is passed type has no 'prototype'
  */
 export type GetInstance<T> = T extends { prototype: infer R }
   ? PrettifyBrand<R & { __SIGIL_BRAND__: SigilBrandOf<T> }>
-  : never;
+  : T;
 
 /** Helper to append label into a class. */
 type AppendLabel<L extends string> = {
@@ -275,10 +267,9 @@ type AppendLabel<L extends string> = {
  * ----------------------------------------- */
 
 /** Update '__SIGIL_BRAND__' field when manual typing is used. */
-export type UpdateSigilBrand<
-  L extends string,
-  P extends ISigilInstance,
-> = Prettify<SigilBrandOf<P> & { [K in L]: true }>;
+export type UpdateSigilBrand<L extends string, P extends ISigilInstance> = Prettify<
+  SigilBrandOf<P> & { [K in L]: true }
+>;
 
 /** -----------------------------------------
  *  Generic types
@@ -310,9 +301,7 @@ export type SigilBrandOf<S> = IfNever<
  * @template T - Instance type produced by the constructor (defaults to `object`).
  * @template P - Parameter tuple type for the constructor.
  */
-export type Constructor<T = object, P extends any[] = any[]> = new (
-  ...args: P
-) => T;
+export type Constructor<T = object, P extends any[] = any[]> = new (...args: P) => T;
 
 /**
  * Generic type for class constructors used by the Sigil utilities. for 'abstract classes'.
@@ -323,10 +312,9 @@ export type Constructor<T = object, P extends any[] = any[]> = new (
  * @template T - Instance type produced by the constructor (defaults to `object`).
  * @template P - Parameter tuple type for the constructor.
  */
-export type ConstructorAbstract<
-  T = object,
-  P extends any[] = any[],
-> = abstract new (...args: P) => T;
+export type ConstructorAbstract<T = object, P extends any[] = any[]> = abstract new (
+  ...args: P
+) => T;
 
 /** Helper type to prettify value */
 export type Prettify<T> = { [K in keyof T]: T[K] } & {};

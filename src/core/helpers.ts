@@ -67,8 +67,7 @@ export function decorateCtor(
 
   // get parent chain (safe if parent hasn't been augmented yet — uses existing value or empty)
   const parent = Object.getPrototypeOf(ctor);
-  const parentChain =
-    parent && parent[__TYPE_LINEAGE__] ? parent[__TYPE_LINEAGE__] : [];
+  const parentChain = parent && parent[__TYPE_LINEAGE__] ? parent[__TYPE_LINEAGE__] : [];
 
   // generate Ctor chain, if mixin (Sigilify function) then append 'Sigil' at the start
   const ctorChain =
@@ -118,10 +117,7 @@ export function checkInheritance(
   ctor: Function,
   opts?: Pick<
     SigilOptions,
-    | 'skipLabelInheritanceCheck'
-    | 'autofillLabels'
-    | 'devMarker'
-    | 'storeConstructor'
+    'skipLabelInheritanceCheck' | 'autofillLabels' | 'devMarker' | 'storeConstructor'
   >
 ) {
   const devMarker = opts?.devMarker ?? OPTIONS.devMarker;
@@ -341,9 +337,7 @@ export function isSigilBaseCtor(ctor: Function): ctor is ISigil {
  * @param inst - The instance to test.
  * @returns `true` if `inst` is an instance of a sigil base constructor.
  */
-export function isSigilBaseInstance(
-  inst: unknown
-): inst is InstanceType<ISigil> {
+export function isSigilBaseInstance(inst: unknown): inst is InstanceType<ISigil> {
   if (!inst || typeof inst !== 'object') return false;
   const ctor = getConstructor(inst);
   return isSigilBaseCtor(ctor);
@@ -401,8 +395,7 @@ export function getConstructor(obj: any) {
  * @returns A random string consisting of upper/lower letters and digits.
  */
 function generateRandomString(length = 16) {
-  const chars =
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
 
   for (let i = 0; i < length; i++) {

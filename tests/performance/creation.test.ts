@@ -10,13 +10,7 @@
  *  - Use --runInBand and --expose-gc for more stable results if desired.
  */
 
-import {
-  Sigil,
-  Sigilify,
-  withSigil,
-  updateOptions,
-  REGISTRY,
-} from '../../dist';
+import { Sigil, Sigilify, withSigil, updateOptions, REGISTRY } from '../../dist';
 
 // Isolate tests from each other
 REGISTRY.replaceRegistry(new Map());

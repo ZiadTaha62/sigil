@@ -434,6 +434,8 @@ Instances of sigilified classes expose instance helpers:
 - `getSigilType()` — runtime symbol.
 - `getSigilTypeLineage()` — returns lineage array.
 - `getSigilTypeSet()` — returns readonly Set.
+- `isOfType(other)` — O(1) membership test using `other`'s `__TYPE_SET__`.
+- `isOfTypeStrict(other)` — strict lineage comparison element-by-element.
 
 ---
 
