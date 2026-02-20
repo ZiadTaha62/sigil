@@ -407,7 +407,7 @@ class X extends Sigil {
 - `withSigilTyped(Class, label?, opts?)`: like `withSigil` but narrows the TypeScript type to include brands.
 - `isSigilCtor(value)`: `true` if `value` is a `Sigil` constructor.
 - `isSigilInstance(value)`: `true` if `value` is an instance of a `Sigil` constructor.
-- `updateOptions(opts)`: change global runtime options before `Sigil` decoration (e.g., `autofillLabels`, `devMarker`, etc.).
+- `updateOptions(opts)`: change global runtime options before `Sigil` decoration (e.g., `autofillLabels`).
 - `DEFAULT_LABEL_REGEX`: regex that ensures structure of `@scope/package.ClassName` to all labels, it's advised to use it as your `SigilOptions.labelValidation`
 
 ### Instance & static helpers provided by Sigilified constructors
@@ -443,7 +443,6 @@ updateOptions({
   autofillLabels: false, // Automatically label unlabeled subclasses
   skipLabelInheritanceCheck: false, // Bypass dev inheritance checks -- ALMOST NEVER WANT TO SET THIS TO TRUE, Use 'autofillLabels: true' instead.
   labelValidation: null, // Function or regex, Enforce label format
-  devMarker: process.env.NODE_ENV !== 'production', // Toggle dev safeguards
 });
 ```
 

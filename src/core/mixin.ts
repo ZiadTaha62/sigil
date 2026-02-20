@@ -9,9 +9,10 @@ import {
   markSigilBase,
   verifyLabel,
 } from './helpers';
-import { OPTIONS, type SigilOptions } from './options';
+import type { SigilOptions } from './options';
 import { __LABEL__, __LABEL_LINEAGE__, __LABEL_SET__ } from './symbols';
 import type { Constructor, ISigil, Prettify, GetInstance, ConstructorAbstract } from './types';
+import { __DEV__ } from './constants';
 
 /**
  * Mixin factory that augments an existing class with Sigil runtime metadata and
@@ -116,13 +117,13 @@ export function Sigilify<B extends Constructor, L extends string>(
       // Resolve constructor; defensive null-check helps catch weird runtime cases.
       const ctor = getConstructor(this);
       if (!ctor) {
-        if (opts?.devMarker ?? OPTIONS.devMarker)
+        if (__DEV__)
           throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
         return;
       }
 
       // Perform dev-only inheritance validation to ensure labels are unique across the chain.
-      checkInheritance(ctor);
+      if (__DEV__) checkInheritance(ctor);
     }
 
     /**
@@ -210,7 +211,7 @@ export function Sigilify<B extends Constructor, L extends string>(
     getSigilLabel(): string {
       const ctor = getConstructor(this);
       if (!ctor) {
-        if (opts?.devMarker ?? OPTIONS.devMarker)
+        if (__DEV__)
           throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
         return '@Sigil.unknown';
       }
@@ -225,7 +226,7 @@ export function Sigilify<B extends Constructor, L extends string>(
     getSigilLabelLineage(): readonly string[] {
       const ctor = getConstructor(this);
       if (!ctor) {
-        if (opts?.devMarker ?? OPTIONS.devMarker)
+        if (__DEV__)
           throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
         return ['@Sigil.unknown'];
       }
@@ -240,7 +241,7 @@ export function Sigilify<B extends Constructor, L extends string>(
     getSigilLabelSet(): Readonly<Set<string>> {
       const ctor = getConstructor(this);
       if (!ctor) {
-        if (opts?.devMarker ?? OPTIONS.devMarker)
+        if (__DEV__)
           throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
         return new Set(['@Sigil.unknown']);
       }
@@ -361,13 +362,13 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
       // Resolve constructor; defensive null-check helps catch weird runtime cases.
       const ctor = getConstructor(this);
       if (!ctor) {
-        if (opts?.devMarker ?? OPTIONS.devMarker)
+        if (__DEV__)
           throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
         return;
       }
 
       // Perform dev-only inheritance validation to ensure labels are unique across the chain.
-      checkInheritance(ctor);
+      if (__DEV__) checkInheritance(ctor);
     }
 
     /**
@@ -463,7 +464,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
     getSigilLabel(): string {
       const ctor = getConstructor(this);
       if (!ctor) {
-        if (opts?.devMarker ?? OPTIONS.devMarker)
+        if (__DEV__)
           throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
         return '@Sigil.unknown';
       }
@@ -478,7 +479,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
     getSigilLabelLineage(): readonly string[] {
       const ctor = getConstructor(this);
       if (!ctor) {
-        if (opts?.devMarker ?? OPTIONS.devMarker)
+        if (__DEV__)
           throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
         return ['@Sigil.unknown'];
       }
@@ -493,7 +494,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
     getSigilLabelSet(): Readonly<Set<string>> {
       const ctor = getConstructor(this);
       if (!ctor) {
-        if (opts?.devMarker ?? OPTIONS.devMarker)
+        if (__DEV__)
           throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
         return new Set(['@Sigil.unknown']);
       }

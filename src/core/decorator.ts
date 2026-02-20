@@ -6,6 +6,7 @@ import {
   verifyLabel,
 } from './helpers';
 import type { SigilOptions } from './options';
+import { __DEV__ } from './constants';
 
 /**
  * Class decorator factory that attaches sigil statics to a class constructor.
@@ -50,6 +51,6 @@ export function WithSigil<L extends string>(label?: L, opts?: SigilOptions) {
     // Attach sigil metadata to constructor (registers label, sets symbols, marks decorated)
     decorateCtor(value, l);
     // Development-only inheritance checks and potential autofill
-    checkInheritance(value, opts);
+    if (__DEV__) checkInheritance(value, opts);
   };
 }

@@ -16,7 +16,6 @@ describe('Sigil core runtime behavior', () => {
     updateOptions({
       autofillLabels: false,
       skipLabelInheritanceCheck: false,
-      devMarker: true,
     });
   });
 
@@ -25,7 +24,6 @@ describe('Sigil core runtime behavior', () => {
     updateOptions({
       autofillLabels: false,
       skipLabelInheritanceCheck: false,
-      devMarker: true,
     });
   });
 

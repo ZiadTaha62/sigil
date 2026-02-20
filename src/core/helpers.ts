@@ -10,6 +10,7 @@ import {
 } from './symbols';
 import type { ISigil } from './types';
 import { createId } from '@paralleldrive/cuid2';
+import { __DEV__ } from './constants';
 
 /** -----------------------------------------
  *  High level helpers
@@ -96,14 +97,12 @@ export function decorateCtor(ctor: Function, label: string, isMixin: boolean = f
  */
 export function checkInheritance(
   ctor: Function,
-  opts?: Pick<SigilOptions, 'skipLabelInheritanceCheck' | 'autofillLabels' | 'devMarker'>
+  opts?: Pick<SigilOptions, 'skipLabelInheritanceCheck' | 'autofillLabels'>
 ) {
-  const devMarker = opts?.devMarker ?? OPTIONS.devMarker;
   const skipLabelInheritanceCheck =
     opts?.skipLabelInheritanceCheck ?? OPTIONS.skipLabelInheritanceCheck;
   const autofillLabels = opts?.autofillLabels ?? OPTIONS.autofillLabels;
 
-  if (!devMarker) return;
   if (!isSigilCtor(ctor)) return;
   if (isInheritanceChecked(ctor) || skipLabelInheritanceCheck) return;
 

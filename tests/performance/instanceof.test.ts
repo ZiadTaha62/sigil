@@ -102,11 +102,11 @@ function benchCheck(fn: () => void, iterations: number): number {
 
 describe('Perf: instanceof vs isOfType vs isOfTypeStrict', () => {
   beforeAll(() => {
-    updateOptions({ devMarker: false, autofillLabels: true });
+    updateOptions({ autofillLabels: true });
   });
 
   afterAll(() => {
-    updateOptions({ devMarker: true, autofillLabels: false });
+    updateOptions({ autofillLabels: false });
   });
 
   test('identity checks across depths (logged results)', async () => {

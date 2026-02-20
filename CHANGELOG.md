@@ -2,11 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.1] - 2026-02-21
+
+### Removed
+
+- `updateOptions.devMarker`
+
+### Changed
+
+- Now dev checks are internal only
+
 ## [2.0.0] - 2026-02-20
 
 ### Breaking changes
 
-All `SigilRegistry`options, methods and classes are removed.
+- All `SigilRegistry`options, methods and classes are removed.
 
 ## [1.3.0] - 2026-02-18
 

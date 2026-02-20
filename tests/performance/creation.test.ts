@@ -2,12 +2,6 @@
  * Performance comparisons:
  * - measures class-definition time and instance creation time
  * - compares Sigil (withSigil/Sigil base) vs normal plain classes
- *
- * Notes:
- * - Tests intentionally log results instead of asserting thresholds.
- * - To reduce noise, Sigil dev checks are disabled via updateOptions({ devMarker: false })
- *   so this approximates production overhead. If you want DEV-mode numbers, toggle devMarker.
- *  - Use --runInBand and --expose-gc for more stable results if desired.
  */
 
 import { Sigil, Sigilify, withSigil, updateOptions } from '../../src';
@@ -203,11 +197,11 @@ async function benchmarkScenario(
 describe('Performance: class creation comparisons (Sigil vs Plain)', () => {
   // Try to remove dev-only overhead for clearer perf comparisons.
   beforeAll(() => {
-    updateOptions({ devMarker: false, autofillLabels: true });
+    updateOptions({ autofillLabels: true });
   });
 
   afterAll(() => {
-    updateOptions({ devMarker: true, autofillLabels: false });
+    updateOptions({ autofillLabels: false });
   });
 
   // Keep tests non-flaky: don't assert thresholds, just print numbers.
