@@ -1,6 +1,6 @@
 export { Sigil, SigilError } from './classes';
 export { WithSigil } from './decorator';
-export { typed, withSigil, withSigilTyped } from './enhancers';
+export { withSigil, withSigilTyped } from './enhancers';
 export {
   isDecorated,
   isInheritanceChecked,
@@ -10,13 +10,7 @@ export {
   isSigilInstance,
 } from './helpers';
 export { Sigilify, SigilifyAbstract } from './mixin';
-export {
-  updateOptions,
-  DEFAULT_LABEL_REGEX,
-  SigilRegistry,
-  getActiveRegistry,
-  REGISTRY,
-} from './options';
+export { updateOptions, DEFAULT_LABEL_REGEX, type SigilOptions } from './options';
 export type {
   ISigilInstance,
   ISigilStatic,
@@ -24,6 +18,5 @@ export type {
   GetInstance,
   SigilBrandOf,
   TypedSigil,
-  SigilOptions,
   UpdateSigilBrand,
 } from './types';

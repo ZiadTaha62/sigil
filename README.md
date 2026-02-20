@@ -2,24 +2,27 @@
 
 [![npm version](https://img.shields.io/npm/v/@vicin/sigil.svg)](https://www.npmjs.com/package/@vicin/sigil) [![npm downloads](https://img.shields.io/npm/dm/@vicin/sigil.svg)](https://www.npmjs.com/package/@vicin/sigil) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![TypeScript](https://img.shields.io/badge/TypeScript-5.0%2B-blue) [![Build](https://github.com/ZiadTaha62/sigil/actions/workflows/ci.yml/badge.svg)](https://github.com/ZiadTaha62/sigil/actions/workflows/ci.yml)
 
-> - 🎉 First stable release — v1.2! Happy coding! 😄💻
+> - 🎉 v2.0.0 is out! Happy coding! 😄💻
 > - 📄 **Changelog:** [CHANGELOG.md](./CHANGELOG.md)
 
-`Sigil` is a lightweight TypeScript library for creating nominal identity classes with compile-time branding and reliable runtime type checks. It organizes class identities across your codebase and gives you the power of **nominal typing**, **safe cross-bundle class checks**, and a **central registry** where each class constructor is stored under a unique label.
+`Sigil` is a lightweight TypeScript library for creating nominal identity classes with compile-time branding and reliable runtime type checks. It organizes class identities across your codebase and gives you the power of **nominal typing** and **safe cross-bundle class checks** where each class constructor is stored under a unique label.
 
 > **Key ideas:**
 >
 > - **Nominal Typing at Compile Time:** Distinguishes structurally similar types (e.g., UserId vs. PostId).
 > - **Reliable Runtime Checks:** Uses symbols instead of instanceof for cross-bundle reliability.
 > - **Inheritance Awareness:** Tracks lineages for subtype/supertype checks.
-> - **Central Registry:** Stores class references by unique labels for easy lookup.
 
 ## Important Notes Before Using
 
-- **Security:** The global registry stores constructors by default, which could expose them. Disable with `{ storeConstructor: false }` for sensitive classes.
-- **Performance:** Minimal overhead, but `.isOfType()` is slower than native `instanceof`. Avoid in ultra-hot paths.
+- **Explicit class identity:** `Sigil` uses passed class label to identify classes, which means that dev is responsible for uniqueness of classes by passing unique labels.
+- **Performance:** Minimal overhead, but `.isOfType()` is slightly slower than native `instanceof`. Avoid in ultra-hot paths.
 - **Private Constructors:** HOF pattern allows extending private constructors in types (TypeScript limitation).
-- **Simple instanceof Fix:** If you just need runtime checks without extras, see the [minimal mode](#minimal-mode) in Registry section.
+- **Simple instanceof Fix:** If you just need runtime checks without extras, see the [minimal mode](#minimal-mode).
+
+## Why Registry is dropped
+
+Although registry added label checks and central class management but it also introduced complexity, especially when mutiple packages tried to use it simultaneously, So in v2 we decided to omit it entirely and minimize API surface.
 
 ---
 
@@ -44,11 +47,8 @@
   - [Decorator pattern](#2-decorator-pattern)
 - [API reference](#api-reference)
 - [Options & configuration](#options--configuration)
-- [Registry](#registry)
-- [Security guidance](#security-guidance)
 - [Minimal mode](#minimal-mode)
 - [Troubleshooting & FAQ](#troubleshooting--faq)
-- [Deprecated API](#deprecated-api)
 - [Phantom](#phantom)
 - [Contributing](#contributing)
 - [License](#license)
@@ -190,9 +190,7 @@ This section states clearly what `Sigil` provides and what it does **not** provi
 
 **2. Reliable runtime identity (when used as intended).**
 
-**3. Optional central registry for discovery & serialization helpers.**
-
-**4. Nominal typing that is inheritance-aware**
+**3. Nominal typing that is inheritance-aware**
 
 ### What Sigil does not guarantee
 
@@ -211,7 +209,6 @@ This section states clearly what `Sigil` provides and what it does **not** provi
 - **Type lineage**: Array of symbols for ancestry.
 - **Type set**: Set of symbols for fast checks.
 - **Brand**: TypeScript marker (`__SIGIL_BRAND__`) for nominal types.
-- **Registry**: A global Map of registered `Sigil` classes keyed by their labels.
 
 ---
 
@@ -222,7 +219,7 @@ Sigil addresses issues in large monorepos and Domain-Driven Design (DDD):
 - **Unreliable `instanceof`:** Bundling and HMR cause class redefinitions, breaking checks.
 - **Manual Branding Overhead:** Custom identifiers lead to boilerplate and maintenance issues.
 
-`Sigil` abstracts these into a **centralized system**, making identity management **explicit** and **error-resistant**.
+`Sigil` abstracts these into a **centralized system**, making identity management **explicit** and **error-resistant** if defined the right way.
 
 ### Implementation Mechanics
 
@@ -386,11 +383,10 @@ class X extends Sigil {
   - `isDecorated(ctor)`
   - `isInheritanceChecked(ctor)`
 
-- **Options/Registry:**
-  - `updateOptions(opts, mergeRegistries?)`
-  - `SigilRegistry`
-  - `getActiveRegistry`
+- **Options:**
+  - `updateOptions(opts)`
   - `DEFAULT_LABEL_REGEX`
+
 - **Types:**
   - `ISigil<Label, ParentSigil?>`
   - `ISigilStatic<Label, ParentSigil?>`
@@ -411,9 +407,7 @@ class X extends Sigil {
 - `withSigilTyped(Class, label?, opts?)`: like `withSigil` but narrows the TypeScript type to include brands.
 - `isSigilCtor(value)`: `true` if `value` is a `Sigil` constructor.
 - `isSigilInstance(value)`: `true` if `value` is an instance of a `Sigil` constructor.
-- `SigilRegistry`: `Sigil` Registry class used to centralize classes across app.
-- `getActiveRegistry`: Getter of active registry being used by `Sigil`.
-- `updateOptions(opts, mergeRegistries?)`: change global runtime options before `Sigil` decoration (e.g., `autofillLabels`, `devMarker`, etc.).
+- `updateOptions(opts)`: change global runtime options before `Sigil` decoration (e.g., `autofillLabels`, `devMarker`, etc.).
 - `DEFAULT_LABEL_REGEX`: regex that ensures structure of `@scope/package.ClassName` to all labels, it's advised to use it as your `SigilOptions.labelValidation`
 
 ### Instance & static helpers provided by Sigilified constructors
@@ -421,11 +415,10 @@ class X extends Sigil {
 When a constructor is decorated/sigilified it will expose the following **static** getters/methods:
 
 - `SigilLabel` — the human label string.
-- `SigilType` — the runtime symbol for the label.
-- `SigilTypeLineage` — readonly array of symbols representing parent → child.
-- `SigilTypeSet` — readonly `Set<symbol>` for O(1) checks.
+- `SigilLabelLineage` — readonly array of labels representing parent → child.
+- `SigilLabelSet` — readonly `Set<string>` for O(1) checks.
 - `isSigilified(obj)` — runtime predicate that delegates to `isSigilInstance`.
-- `isOfType(other)` — O(1) membership test using `other`'s `__TYPE_SET__`.
+- `isOfType(other)` — O(1) membership test using `other`'s `__LABEL_SET__`.
 - `isOfTypeStrict(other)` — strict lineage comparison element-by-element.
 
 Instances of sigilified classes expose instance helpers:
@@ -434,7 +427,7 @@ Instances of sigilified classes expose instance helpers:
 - `getSigilType()` — runtime symbol.
 - `getSigilTypeLineage()` — returns lineage array.
 - `getSigilTypeSet()` — returns readonly Set.
-- `isOfType(other)` — O(1) membership test using `other`'s `__TYPE_SET__`.
+- `isOfType(other)` — O(1) membership test using `other`'s `__LABEL_SET__`.
 - `isOfTypeStrict(other)` — strict lineage comparison element-by-element.
 
 ---
@@ -444,16 +437,13 @@ Instances of sigilified classes expose instance helpers:
 Customize behavior globally at startup:
 
 ```ts
-import { updateOptions, SigilRegistry } from '@vicin/sigil';
+import { updateOptions } from '@vicin/sigil';
 
 updateOptions({
   autofillLabels: false, // Automatically label unlabeled subclasses
   skipLabelInheritanceCheck: false, // Bypass dev inheritance checks -- ALMOST NEVER WANT TO SET THIS TO TRUE, Use 'autofillLabels: true' instead.
   labelValidation: null, // Function or regex, Enforce label format
   devMarker: process.env.NODE_ENV !== 'production', // Toggle dev safeguards
-  registry: new SigilRegistry(), // Custom registry instance
-  useGlobalRegistry: true, // Store in 'globalThis' for cross-bundle access
-  storeConstructor: true, // Include constructors in registry
 });
 ```
 
@@ -461,81 +451,15 @@ Values defined in previous example are defaults, per-class overrides available i
 
 ---
 
-## Registry
-
-The registry ensures **unique labels** and supports central class management for ops as serialization.
-
-- **Access:** `const registry = getActiveRegistry();` – Returns current `SigilRegistry` or `null`.
-- **Operations:** `has(label)`, `get(label)`, `listLabels()`, `register(label, ctor, opts?)`, `unregister(label)`, `clear()`, `size`.
-- **Replacement:** `updateOptions({ registry: new SigilRegistry(myMap) }, merge?);` – Optionally merge existing entries.
-- **Disable:** Set `registry: null` to skip all registry functions.
-- **Global Storage:** Defaults to `globalThis[Symbol.for('__SIGIL_REGISTRY__')];` disable with `useGlobalRegistry: false` if single-bundle guaranteed.
-- **Constructor Privacy:** Set `storeConstructor: false` globally or per-class to replace constructors with null in the map.
-
-### Class typing in registry
-
-Unfortunately concrete types of classes is not supported and all classes are stored as `ISigil` type. if you want concrete typing, you can wrap registry:
-
-```ts
-import { getActiveRegistry } from '@vicin/sigil';
-import type { MySigilClass1 } from './file1';
-import type { MySigilClass2 } from './file2';
-
-interface MyClasses {
-  MySigilClass1: typeof MySigilClass1;
-  MySigilClass2: typeof MySigilClass2;
-}
-
-export class MySigilRegistry {
-  listLabels(): (keyof MyClasses)[] {
-    return getActiveRegistry()?.listLabels();
-  }
-  has(label: string): boolean {
-    return getActiveRegistry()?.has(label);
-  }
-  get<L extends keyof MyClasses>(label: L): MyClasses[L] {
-    return getActiveRegistry()?.get(label) as any;
-  }
-  unregister(label: string): boolean {
-    return getActiveRegistry()?.unregister(label);
-  }
-  clear(): void {
-    getActiveRegistry()?.clear();
-  }
-  replaceRegistry(newRegistry: Map<string, ISigil> | null): void {
-    getActiveRegistry()?.replaceRegistry(newRegistry);
-  }
-  get size(): number {
-    return getActiveRegistry()?.size;
-  }
-}
-```
-
-Now you have fully typed central class registry!
-
----
-
-## Security guidance
-
-- **Recommended for Untrusted Environments:** `updateOptions({ storeConstructor: false });` – Prevents constructors from being stored in the registry map (labels remain, but constructors are `null`).
-
-- **Trusted Environments:** Enable full registry for centralization (default behavior).
-
-- **Per-Class Control:** Use `{ storeConstructor: false }` for sensitive classes in decorator or HOF function.
-
-Always remember, Registry is metadata-only; avoid for sensitive data. Global access possible if enabled.
-
----
-
 ## Minimal mode
 
-`updateOptions({ autofillLabels: true, storeConstructor: false });` – Enables background operation without explicit labels or storage:
+`updateOptions({ autofillLabels: true });` – Enables background operation without explicit labels:
 
 ```ts
 import { Sigil, updateOptions } from '@vicin/sigil';
 
 // run at the start of the app
-updateOptions({ autofillLabels: true, storeConstructor: false });
+updateOptions({ autofillLabels: true });
 
 // No decorators or HOF needed to use 'isOfType' ('instanceof' replacement)
 class A extends Sigil {}
@@ -550,40 +474,6 @@ class C extends B {}
 - **Dev Extension Errors:** Add labels or enable autofillLabels.
 - **Anonymous Class Errors:** Export untyped bases.
 - **Selective Labeling:** Use `autofillLabels: true` or empty `@WithSigil()` for auto-generation.
-- **Registry Inspection:** `getActiveRegistry()?.listLabels()`.
-
----
-
-## Deprecated API
-
-### REGISTRY
-
-`Sigil` has moved from static reference registry to dynamic access and updates, now devs can create `SigilRegistry` class and pass it to `SigilOptions` to be used by the library internals. however change is done gracefully and `REGISTRY` is still supported with no change in behavior but it's **marked with `deprecated` and will be removed in v2.0.0**.
-
-```ts
-import { REGISTRY, getActiveRegistry } from '@vicin/sigil';
-
-// from:
-const present = REGISTRY.has('label');
-// to:
-const registry = getActiveRegistry();
-const present = registry ? registry.has('label') : false;
-```
-
-```ts
-import { REGISTRY, updateOptions, SigilRegistry } from '@vicin/sigil';
-
-// from:
-const newRegistry = new Map();
-REGISTRY.replaceRegistry(newRegistry);
-// to
-const newRegistry = new SigilRegistry(); // can pass external map to constructor, this map will hold all classes
-updateOptions({ registry: newRegistry });
-```
-
-### typed
-
-Obsolete; mixins now handle typing natively. **marked with `deprecated` and will be removed in v2.0.0**
 
 ---
 

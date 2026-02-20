@@ -1,15 +1,15 @@
-import { OPTIONS, getActiveRegistry } from './options';
+import { OPTIONS, type SigilOptions } from './options';
 import {
   __DECORATED__,
   __INHERITANCE_CHECKED__,
   __LABEL__,
   __SIGIL_BASE__,
   __SIGIL__,
-  __TYPE_LINEAGE__,
-  __TYPE_SET__,
-  __TYPE__,
+  __LABEL_LINEAGE__,
+  __LABEL_SET__,
 } from './symbols';
-import type { ISigil, SigilOptions } from './types';
+import type { ISigil } from './types';
+import { createId } from '@paralleldrive/cuid2';
 
 /** -----------------------------------------
  *  High level helpers
@@ -19,12 +19,10 @@ import type { ISigil, SigilOptions } from './types';
  * Attach sigil-related statics to a constructor and register its label.
  *
  * Side effects:
- * - Registers `label` in the global registry via `REGISTRY.register(label)`.
  * - Defines non-enumerable statics on the constructor:
  *   - `__LABEL__` (string)
- *   - `__TYPE__` (Symbol.for(label))
- *   - `__TYPE_LINEAGE__` (array of symbols)
- *   - `__TYPE_SET__` (Set of symbols)
+ *   - `__LABEL_LINEAGE__` (array of strings)
+ *   - `__LABEL_SET__` (Set of strings)
  * - Marks the constructor as decorated via `markDecorated`.
  *
  * Throws if the constructor is already decorated.
@@ -35,21 +33,12 @@ import type { ISigil, SigilOptions } from './types';
  * @param opts - Options object to override any global options if needed.
  * @throws Error when `ctor` is already decorated.
  */
-export function decorateCtor(
-  ctor: Function,
-  label: string,
-  opts?: Pick<SigilOptions, 'devMarker' | 'storeConstructor'>,
-  isMixin: boolean = false
-) {
+export function decorateCtor(ctor: Function, label: string, isMixin: boolean = false) {
   // if already decorated throw error
   if (isDecorated(ctor))
     throw new Error(
       `Constructor ${ctor} is already decorated. if you are using 'withSigilTyped()' & '@WithSigil()' at the same time remove one of them.`
     );
-
-  // get symbol for the label and update registry
-  const symbol = Symbol.for(label);
-  getActiveRegistry()?.register(label, ctor as ISigil, opts);
 
   // attach basic runtime statics
   Object.defineProperty(ctor, __LABEL__, {
@@ -58,31 +47,23 @@ export function decorateCtor(
     enumerable: false,
     writable: false,
   });
-  Object.defineProperty(ctor, __TYPE__, {
-    value: symbol,
-    configurable: false,
-    enumerable: false,
-    writable: false,
-  });
 
   // get parent chain (safe if parent hasn't been augmented yet — uses existing value or empty)
   const parent = Object.getPrototypeOf(ctor);
-  const parentChain = parent && parent[__TYPE_LINEAGE__] ? parent[__TYPE_LINEAGE__] : [];
+  const parentChain = parent && parent[__LABEL_LINEAGE__] ? parent[__LABEL_LINEAGE__] : [];
 
   // generate Ctor chain, if mixin (Sigilify function) then append 'Sigil' at the start
   const ctorChain =
-    isMixin && label !== 'Sigil' //
-      ? [Symbol.for('Sigil'), ...parentChain, symbol]
-      : [...parentChain, symbol];
+    isMixin && label !== 'Sigil' ? ['Sigil', ...parentChain, label] : [...parentChain, label];
 
   // attach symbol lineage and set
-  Object.defineProperty(ctor, __TYPE_LINEAGE__, {
+  Object.defineProperty(ctor, __LABEL_LINEAGE__, {
     value: ctorChain,
     configurable: false,
     enumerable: false,
     writable: false,
   });
-  Object.defineProperty(ctor, __TYPE_SET__, {
+  Object.defineProperty(ctor, __LABEL_SET__, {
     value: new Set(ctorChain),
     configurable: false,
     enumerable: false,
@@ -115,10 +96,7 @@ export function decorateCtor(
  */
 export function checkInheritance(
   ctor: Function,
-  opts?: Pick<
-    SigilOptions,
-    'skipLabelInheritanceCheck' | 'autofillLabels' | 'devMarker' | 'storeConstructor'
-  >
+  opts?: Pick<SigilOptions, 'skipLabelInheritanceCheck' | 'autofillLabels' | 'devMarker'>
 ) {
   const devMarker = opts?.devMarker ?? OPTIONS.devMarker;
   const skipLabelInheritanceCheck =
@@ -156,7 +134,7 @@ export function checkInheritance(
         );
       }
       label = generateRandomLabel();
-      decorateCtor(ctor, label, opts);
+      decorateCtor(ctor, label);
     }
     labelOwner.set(label, ctor.name);
   }
@@ -206,10 +184,8 @@ export function verifyLabel<L extends string>(
  * @param length - Desired length of the generated string (defaults to 16).
  * @returns A random label.
  */
-export function generateRandomLabel(length = 16): string {
-  let label = generateRandomString(length);
-  const registry = getActiveRegistry();
-  if (registry) while (registry.has(label)) label = generateRandomLabel();
+export function generateRandomLabel(): string {
+  let label = createId();
   return `@Sigil.auto-${label}`;
 }
 
@@ -385,22 +361,4 @@ export function isInheritanceChecked(ctor: Function): boolean {
 export function getConstructor(obj: any) {
   if (!obj || typeof obj !== 'object') return null;
   return obj.constructor ?? Object.getPrototypeOf(obj)?.constructor ?? null;
-}
-
-/**
- * Generate a random alphanumeric string of the requested length.
- *
- * @internal
- * @param length - Desired length of the generated string (defaults to 16).
- * @returns A random string consisting of upper/lower letters and digits.
- */
-function generateRandomString(length = 16) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-
-  return result;
 }

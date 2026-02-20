@@ -5,15 +5,9 @@ import {
   WithSigil,
   isSigilCtor,
   isSigilInstance,
-  REGISTRY,
   updateOptions,
   withSigilTyped,
-  typed,
-} from '../../dist';
-
-// Isolate tests from each other
-REGISTRY.replaceRegistry(new Map());
-REGISTRY.clear();
+} from '../../src';
 
 describe('Sigil core runtime behavior', () => {
   // Reset registry and options between tests to isolate state
@@ -24,15 +18,9 @@ describe('Sigil core runtime behavior', () => {
       skipLabelInheritanceCheck: false,
       devMarker: true,
     });
-
-    // Clear registry
-    REGISTRY.clear();
   });
 
   afterEach(() => {
-    // Always leave registry in a clean state
-    REGISTRY.clear();
-
     // Restore options to a safe default
     updateOptions({
       autofillLabels: false,
@@ -47,18 +35,12 @@ describe('Sigil core runtime behavior', () => {
     expect(Ctor.SigilLabel).toBe('@test/Ctor');
     expect(Ctor).toBeDefined();
     expect(Ctor.SigilLabel).toBe('@test/Ctor');
-    expect(typeof Ctor.SigilType).toBe('symbol');
 
     const inst = new Ctor();
     // static helper
     expect(inst.getSigilLabel()).toBe('@test/Ctor');
     // instance helper
     expect(inst.getSigilLabel()).toBe('@test/Ctor');
-    expect(inst.getSigilType()).toBe(Ctor.SigilType);
-    // registry should contain the label
-    expect(REGISTRY.has('@test/Ctor')).toBe(true);
-    // registry.get should return the constructor (loose check)
-    expect(REGISTRY.get('@test/Ctor')).toBe(Ctor);
   });
 
   test('WithSigil decorator attaches runtime metadata', () => {
@@ -67,18 +49,12 @@ describe('Sigil core runtime behavior', () => {
 
     expect(User).toBeDefined();
     expect(User.SigilLabel).toBe('@test/User');
-    expect(typeof User.SigilType).toBe('symbol');
 
     const u = new User();
     // static helper
     expect(User.isSigilified(u)).toBe(true);
     // instance helper
     expect(u.getSigilLabel()).toBe('@test/User');
-    expect(u.getSigilType()).toBe(User.SigilType);
-    // registry should contain the label
-    expect(REGISTRY.has('@test/User')).toBe(true);
-    // registry.get should return the constructor (loose check)
-    expect(REGISTRY.get('@test/User')).toBe(User);
   });
 
   test('withSigil HOF attaches runtime metadata', () => {
@@ -87,18 +63,12 @@ describe('Sigil core runtime behavior', () => {
 
     expect(User).toBeDefined();
     expect(User.SigilLabel).toBe('@test/User');
-    expect(typeof User.SigilType).toBe('symbol');
 
     const u = new User();
     // static helper
     expect(User.isSigilified(u)).toBe(true);
     // instance helper
     expect(u.getSigilLabel()).toBe('@test/User');
-    expect(u.getSigilType()).toBe(User.SigilType);
-    // registry should contain the label
-    expect(REGISTRY.has('@test/User')).toBe(true);
-    // registry.get should return the constructor (loose check)
-    expect(REGISTRY.get('@test/User')).toBe(User);
   });
 
   test('Double siglify throws', () => {
@@ -121,21 +91,6 @@ describe('Sigil core runtime behavior', () => {
     expect(() => {
       withSigilTyped(class X {}, 'X');
     }).toThrow("[Sigil Error] 'withSigilTyped' HOF accept only Sigil classes");
-
-    expect(() => {
-      typed(class X {}, 'X');
-    }).toThrow("[Sigil Error] 'typed' HOF accept only Sigil classes");
-  });
-
-  test('duplicate labels throws', () => {
-    class _A extends Sigil {}
-    withSigil(_A, '@test/Dup');
-
-    // A second class with same label should throw during sigil registration in DEV
-    class _B extends Sigil {}
-    expect(() => withSigil(_B, '@test/Dup')).toThrow(
-      "[Sigil Error] Duplicate label '@test/Dup' (different classes: _A vs _B)"
-    );
   });
 
   test('Empty label autofill', () => {
@@ -170,9 +125,9 @@ describe('Sigil core runtime behavior', () => {
     expect(Sub.isOfTypeStrict(baseInst)).toBe(false);
 
     // instance-level sets
-    const typeSet = subInst.getSigilTypeSet();
-    expect(typeSet.has(Base.SigilType)).toBe(true);
-    expect(typeSet.has(Sub.SigilType)).toBe(true);
+    const typeSet = subInst.getSigilLabelSet();
+    expect(typeSet.has(Base.SigilLabel)).toBe(true);
+    expect(typeSet.has(Sub.SigilLabel)).toBe(true);
   });
 
   test('lineage: subclass is recognized as subtype of base via isOfType of instances', () => {
@@ -197,9 +152,9 @@ describe('Sigil core runtime behavior', () => {
     expect(subInst.isOfTypeStrict(baseInst)).toBe(false);
 
     // instance-level sets
-    const typeSet = subInst.getSigilTypeSet();
-    expect(typeSet.has(baseInst.getSigilType())).toBe(true);
-    expect(typeSet.has(subInst.getSigilType())).toBe(true);
+    const typeSet = subInst.getSigilLabelSet();
+    expect(typeSet.has(baseInst.getSigilLabel())).toBe(true);
+    expect(typeSet.has(subInst.getSigilLabel())).toBe(true);
   });
 
   test('isSigilCtor and isSigilInstance helpers', () => {
@@ -212,9 +167,5 @@ describe('Sigil core runtime behavior', () => {
 
     // Plain object is not a sigil instance
     expect(isSigilInstance({})).toBe(false);
-  });
-
-  test('free registry', () => {
-    REGISTRY.replaceRegistry(null);
   });
 });

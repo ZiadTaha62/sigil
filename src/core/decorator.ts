@@ -5,7 +5,7 @@ import {
   isSigilCtor,
   verifyLabel,
 } from './helpers';
-import type { SigilOptions } from './types';
+import type { SigilOptions } from './options';
 
 /**
  * Class decorator factory that attaches sigil statics to a class constructor.
@@ -48,7 +48,7 @@ export function WithSigil<L extends string>(label?: L, opts?: SigilOptions) {
         `[Sigil Error] 'WithSigil' decorator accept only Sigil classes but used on class ${value.name}`
       );
     // Attach sigil metadata to constructor (registers label, sets symbols, marks decorated)
-    decorateCtor(value, l, opts);
+    decorateCtor(value, l);
     // Development-only inheritance checks and potential autofill
     checkInheritance(value, opts);
   };

@@ -9,23 +9,15 @@ import {
   markSigilBase,
   verifyLabel,
 } from './helpers';
-import { OPTIONS } from './options';
-import { __LABEL__, __TYPE__, __TYPE_LINEAGE__, __TYPE_SET__ } from './symbols';
-import type {
-  Constructor,
-  ISigil,
-  SigilOptions,
-  Prettify,
-  GetInstance,
-  ConstructorAbstract,
-} from './types';
+import { OPTIONS, type SigilOptions } from './options';
+import { __LABEL__, __LABEL_LINEAGE__, __LABEL_SET__ } from './symbols';
+import type { Constructor, ISigil, Prettify, GetInstance, ConstructorAbstract } from './types';
 
 /**
  * Mixin factory that augments an existing class with Sigil runtime metadata and
  * helpers.
  *
  * The returned class:
- * - registers a stable symbol for the provided `label` (via `WithSigil`)
  * - exposes static helpers such as `SigilLabel`, `SigilType`, `isOfType`, and `isOfTypeStrict`
  * - exposes instance helpers such as `getSigilLabel`, `getSigilType`, etc.
  *
@@ -76,36 +68,26 @@ export function Sigilify<B extends Constructor, L extends string>(
     }
 
     /**
-     * Class-level unique runtime symbol used as the type identifier.
-     *
-     * This symbol is created with `Symbol.for(label)` during decoration so it is
-     * stable across realms that share the same global symbol registry.
-     */
-    static get SigilType(): symbol {
-      return (this as any)[__TYPE__];
-    }
-
-    /**
-     * Copy of the linearized sigil type symbol chain for the current constructor.
+     * Copy of the linearized sigil type label chain for the current constructor.
      *
      * Useful for debugging and performing strict lineage comparisons.
      *
-     * @returns An array of symbols representing parent → child type symbols.
+     * @returns An array of labels representing parent → child type labels.
      */
-    static get SigilTypeLineage(): readonly symbol[] {
-      return [...((this as any)[__TYPE_LINEAGE__] ?? [])];
+    static get SigilLabelLineage(): readonly string[] {
+      return [...((this as any)[__LABEL_LINEAGE__] ?? [])];
     }
 
     /**
-     * Copy of the sigil type symbol set for the current constructor.
+     * Copy of the sigil type label set for the current constructor.
      *
      * Useful for quick membership checks (O(1) lookups) and debugging.
      *
-     * @returns A Readonly Set of symbols that represent the type lineage.
+     * @returns A Readonly Set of labels that represent the type lineage.
      */
-    static get SigilTypeSet(): Readonly<Set<symbol>> {
-      const set: Set<symbol> = new Set();
-      for (const s of (this as any)[__TYPE_SET__]) set.add(s);
+    static get SigilLabelSet(): Readonly<Set<string>> {
+      const set: Set<string> = new Set();
+      for (const s of (this as any)[__LABEL_SET__]) set.add(s);
       return set;
     }
 
@@ -166,13 +148,13 @@ export function Sigilify<B extends Constructor, L extends string>(
      */
     static isOfType<T>(this: T, other: unknown): other is GetInstance<T> {
       if (!isSigilInstance(other)) return false;
-      const otherSet = getConstructor(other)?.[__TYPE_SET__];
-      const thisType = (this as any)[__TYPE__];
+      const otherSet = getConstructor(other)?.[__LABEL_SET__];
+      const thisType = (this as any)[__LABEL__];
       return !!otherSet && otherSet.has(thisType);
     }
 
     /**
-     * Strict lineage check: compares the type symbol lineage arrays element-by-element.
+     * Strict lineage check: compares the type label lineage arrays element-by-element.
      *
      * @typeParam T - The calling constructor type.
      * @param this - The constructor performing the check.
@@ -181,8 +163,8 @@ export function Sigilify<B extends Constructor, L extends string>(
      */
     static isOfTypeStrict<T>(this: T, other: unknown): other is GetInstance<T> {
       if (!isSigilInstance(other)) return false;
-      const otherLineage = getConstructor(other)?.[__TYPE_LINEAGE__];
-      const thisLineage = (this as any)[__TYPE_LINEAGE__] as readonly symbol[];
+      const otherLineage = getConstructor(other)?.[__LABEL_LINEAGE__];
+      const thisLineage = (this as any)[__LABEL_LINEAGE__] as readonly string[];
       return !!otherLineage && thisLineage.every((s, i) => s === otherLineage[i]);
     }
 
@@ -198,13 +180,13 @@ export function Sigilify<B extends Constructor, L extends string>(
      */
     isOfType<T>(this: T, other: unknown): other is GetInstance<T> {
       if (!isSigilInstance(other)) return false;
-      const otherSet = getConstructor(other)?.[__TYPE_SET__];
-      const thisType = getConstructor(this)[__TYPE__];
+      const otherSet = getConstructor(other)?.[__LABEL_SET__];
+      const thisType = getConstructor(this)[__LABEL__];
       return !!otherSet && otherSet.has(thisType);
     }
 
     /**
-     * Strict lineage check: compares the type symbol lineage arrays element-by-element.
+     * Strict lineage check: compares the type label lineage arrays element-by-element.
      *
      * Allows 'instanceof' like checks but in instances.
      *
@@ -213,10 +195,10 @@ export function Sigilify<B extends Constructor, L extends string>(
      * @param other - The object to test.
      * @returns `true` if `other` has an identical lineage up to the length of this instance's lineage.
      */
-    isOfTypeStrict<T>(this: T, other: unknown): other is GetInstance<this> {
+    isOfTypeStrict<T>(this: T, other: unknown): other is GetInstance<T> {
       if (!isSigilInstance(other)) return false;
-      const otherLineage = getConstructor(other)?.[__TYPE_LINEAGE__];
-      const thisLineage = getConstructor(this)?.[__TYPE_LINEAGE__] as readonly symbol[];
+      const otherLineage = getConstructor(other)?.[__LABEL_LINEAGE__];
+      const thisLineage = getConstructor(this)?.[__LABEL_LINEAGE__] as readonly string[];
       return !!otherLineage && thisLineage.every((s, i) => s === otherLineage[i]);
     }
 
@@ -236,53 +218,38 @@ export function Sigilify<B extends Constructor, L extends string>(
     }
 
     /**
-     * Returns the runtime sigil type symbol of this instance's constructor.
+     * Returns a copy of the sigil type label lineage for this instance's constructor.
      *
-     * @returns The symbol that identifies this type at runtime.
+     * @returns readonly array of labels representing the type lineage.
      */
-    getSigilType(): symbol {
+    getSigilLabelLineage(): readonly string[] {
       const ctor = getConstructor(this);
       if (!ctor) {
         if (opts?.devMarker ?? OPTIONS.devMarker)
           throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
-        return Symbol.for('@Sigil.unknown');
+        return ['@Sigil.unknown'];
       }
-      return ctor.SigilType;
+      return ctor.SigilLabelLineage;
     }
 
     /**
-     * Returns a copy of the sigil type symbol lineage for this instance's constructor.
+     * Returns a readonly copy of the sigil type label set for this instance's constructor.
      *
-     * @returns readonly array of symbols representing the type lineage.
+     * @returns A Readonly Set of labels representing the type lineage for O(1) membership tests.
      */
-    getSigilTypeLineage(): readonly symbol[] {
+    getSigilLabelSet(): Readonly<Set<string>> {
       const ctor = getConstructor(this);
       if (!ctor) {
         if (opts?.devMarker ?? OPTIONS.devMarker)
           throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
-        return [Symbol.for('@Sigil.unknown')];
+        return new Set(['@Sigil.unknown']);
       }
-      return ctor.SigilTypeLineage;
-    }
-
-    /**
-     * Returns a readonly copy of the sigil type symbol set for this instance's constructor.
-     *
-     * @returns A Readonly Set of symbols representing the type lineage for O(1) membership tests.
-     */
-    getSigilTypeSet(): Readonly<Set<symbol>> {
-      const ctor = getConstructor(this);
-      if (!ctor) {
-        if (opts?.devMarker ?? OPTIONS.devMarker)
-          throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
-        return new Set([Symbol.for('@Sigil.unknown')]);
-      }
-      return ctor.SigilTypeSet;
+      return ctor.SigilLabelSet;
     }
   }
 
-  // Attach sigil metadata to constructor (registers label, sets symbols, marks decorated)
-  decorateCtor(Sigilified, l, opts, true);
+  // Attach sigil metadata to constructor (registers label, sets labels, marks decorated)
+  decorateCtor(Sigilified, l, true);
 
   // Mark the returned constructor as sigil (runtime flag) and as a base.
   markSigil(Sigilified);
@@ -296,7 +263,6 @@ export function Sigilify<B extends Constructor, L extends string>(
  * helpers. Accept and return 'abstract' class.
  *
  * The returned class:
- * - registers a stable symbol for the provided `label` (via `WithSigil`)
  * - exposes static helpers such as `SigilLabel`, `SigilType`, `isOfType`, and `isOfTypeStrict`
  * - exposes instance helpers such as `getSigilLabel`, `getSigilType`, etc.
  *
@@ -347,36 +313,26 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
     }
 
     /**
-     * Class-level unique runtime symbol used as the type identifier.
-     *
-     * This symbol is created with `Symbol.for(label)` during decoration so it is
-     * stable across realms that share the same global symbol registry.
-     */
-    static get SigilType(): symbol {
-      return (this as any)[__TYPE__];
-    }
-
-    /**
-     * Copy of the linearized sigil type symbol chain for the current constructor.
+     * Copy of the linearized sigil type label chain for the current constructor.
      *
      * Useful for debugging and performing strict lineage comparisons.
      *
-     * @returns An array of symbols representing parent → child type symbols.
+     * @returns An array of labels representing parent → child type labels.
      */
-    static get SigilTypeLineage(): readonly symbol[] {
-      return [...((this as any)[__TYPE_LINEAGE__] ?? [])];
+    static get SigilLabelLineage(): readonly string[] {
+      return [...((this as any)[__LABEL_LINEAGE__] ?? [])];
     }
 
     /**
-     * Copy of the sigil type symbol set for the current constructor.
+     * Copy of the sigil type label set for the current constructor.
      *
      * Useful for quick membership checks (O(1) lookups) and debugging.
      *
-     * @returns A Readonly Set of symbols that represent the type lineage.
+     * @returns A Readonly Set of labels that represent the type lineage.
      */
-    static get SigilTypeSet(): Readonly<Set<symbol>> {
-      const set: Set<symbol> = new Set();
-      for (const s of (this as any)[__TYPE_SET__]) set.add(s);
+    static get SigilLabelSet(): Readonly<Set<string>> {
+      const set: Set<string> = new Set();
+      for (const s of (this as any)[__LABEL_SET__]) set.add(s);
       return set;
     }
 
@@ -428,7 +384,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      * Check whether `other` is (or inherits from) the type represented by the calling constructor.
      *
      * Implementation detail:
-     * - Uses the other instance's `__TYPE_SET__` for O(1) membership test.
+     * - Uses the other instance's `__LABEL_SET__` for O(1) membership test.
      * - O(1) and reliable as long as `OPTIONS.skipLabelInheritanceCheck` is `false`.
      *
      * This replaces `instanceof` so that checks remain valid across bundles/realms
@@ -441,13 +397,13 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      */
     static isOfType<T>(this: T, other: unknown): other is GetInstance<T> {
       if (!isSigilInstance(other) || !isSigilCtor(this)) return false;
-      const otherSet = getConstructor(other)?.[__TYPE_SET__];
-      const thisType = (this as any)[__TYPE__];
+      const otherSet = getConstructor(other)?.[__LABEL_SET__];
+      const thisType = (this as any)[__LABEL__];
       return !!otherSet && otherSet.has(thisType);
     }
 
     /**
-     * Strict lineage check: compares the type symbol lineage arrays element-by-element.
+     * Strict lineage check: compares the type label lineage arrays element-by-element.
      *
      * Implementation detail:
      * - Works in O(n) time where n is the depth of the lineage.
@@ -460,8 +416,8 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      */
     static isOfTypeStrict<T>(this: T, other: unknown): other is GetInstance<T> {
       if (!isSigilInstance(other) || !isSigilCtor(this)) return false;
-      const otherLineage = getConstructor(other)?.[__TYPE_LINEAGE__];
-      const thisLineage = (this as any)[__TYPE_LINEAGE__] as readonly symbol[];
+      const otherLineage = getConstructor(other)?.[__LABEL_LINEAGE__];
+      const thisLineage = (this as any)[__LABEL_LINEAGE__] as readonly string[];
       return !!otherLineage && thisLineage.every((s, i) => s === otherLineage[i]);
     }
 
@@ -477,13 +433,13 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      */
     isOfType<T>(this: T, other: unknown): other is GetInstance<T> {
       if (!isSigilInstance(other) || !isSigilInstance(this)) return false;
-      const otherSet = getConstructor(other)?.[__TYPE_SET__];
-      const thisType = getConstructor(this)[__TYPE__];
+      const otherSet = getConstructor(other)?.[__LABEL_SET__];
+      const thisType = getConstructor(this)[__LABEL__];
       return !!otherSet && otherSet.has(thisType);
     }
 
     /**
-     * Strict lineage check: compares the type symbol lineage arrays element-by-element.
+     * Strict lineage check: compares the type label lineage arrays element-by-element.
      *
      * Allows 'instanceof' like checks but in instances.
      *
@@ -492,10 +448,10 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      * @param other - The object to test.
      * @returns `true` if `other` has an identical lineage up to the length of this instance's lineage.
      */
-    isOfTypeStrict<T>(this: T, other: unknown): other is GetInstance<this> {
+    isOfTypeStrict<T>(this: T, other: unknown): other is GetInstance<T> {
       if (!isSigilInstance(other) || !isSigilInstance(this)) return false;
-      const otherLineage = getConstructor(other)?.[__TYPE_LINEAGE__];
-      const thisLineage = getConstructor(this)?.[__TYPE_LINEAGE__] as readonly symbol[];
+      const otherLineage = getConstructor(other)?.[__LABEL_LINEAGE__];
+      const thisLineage = getConstructor(this)?.[__LABEL_LINEAGE__] as readonly string[];
       return !!otherLineage && thisLineage.every((s, i) => s === otherLineage[i]);
     }
 
@@ -515,53 +471,38 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
     }
 
     /**
-     * Returns the runtime sigil type symbol of this instance's constructor.
+     * Returns a copy of the sigil type label lineage for this instance's constructor.
      *
-     * @returns The symbol that identifies this type at runtime.
+     * @returns readonly array of labels representing the type lineage.
      */
-    getSigilType(): symbol {
+    getSigilLabelLineage(): readonly string[] {
       const ctor = getConstructor(this);
       if (!ctor) {
         if (opts?.devMarker ?? OPTIONS.devMarker)
           throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
-        return Symbol.for('@Sigil.unknown');
+        return ['@Sigil.unknown'];
       }
-      return ctor.SigilType;
+      return ctor.SigilLabelLineage;
     }
 
     /**
-     * Returns a copy of the sigil type symbol lineage for this instance's constructor.
+     * Returns a readonly copy of the sigil type label set for this instance's constructor.
      *
-     * @returns readonly array of symbols representing the type lineage.
+     * @returns A Readonly Set of labels representing the type lineage for O(1) membership tests.
      */
-    getSigilTypeLineage(): readonly symbol[] {
+    getSigilLabelSet(): Readonly<Set<string>> {
       const ctor = getConstructor(this);
       if (!ctor) {
         if (opts?.devMarker ?? OPTIONS.devMarker)
           throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
-        return [Symbol.for('@Sigil.unknown')];
+        return new Set(['@Sigil.unknown']);
       }
-      return ctor.SigilTypeLineage;
-    }
-
-    /**
-     * Returns a readonly copy of the sigil type symbol set for this instance's constructor.
-     *
-     * @returns A Readonly Set of symbols representing the type lineage for O(1) membership tests.
-     */
-    getSigilTypeSet(): Readonly<Set<symbol>> {
-      const ctor = getConstructor(this);
-      if (!ctor) {
-        if (opts?.devMarker ?? OPTIONS.devMarker)
-          throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
-        return new Set([Symbol.for('@Sigil.unknown')]);
-      }
-      return ctor.SigilTypeSet;
+      return ctor.SigilLabelSet;
     }
   }
 
-  // Attach sigil metadata to constructor (registers label, sets symbols, marks decorated)
-  decorateCtor(Sigilified, l, opts, true);
+  // Attach sigil metadata to constructor (registers label, sets labels, marks decorated)
+  decorateCtor(Sigilified, l, true);
 
   // Mark the returned constructor as sigil (runtime flag) and as a base.
   markSigil(Sigilified);

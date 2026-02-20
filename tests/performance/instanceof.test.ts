@@ -12,11 +12,7 @@
  *  - Use --runInBand and --expose-gc for more stable results if desired.
  */
 
-import { Sigil, withSigil, updateOptions, REGISTRY } from '../../dist';
-
-// Isolate tests from each other
-REGISTRY.replaceRegistry(new Map());
-REGISTRY.clear();
+import { Sigil, withSigil, updateOptions } from '../../src';
 
 const CHECK_ITERATIONS = 200_000; // number of check ops per measured run
 const WARMUP_ITER = 1000;
@@ -107,11 +103,9 @@ function benchCheck(fn: () => void, iterations: number): number {
 describe('Perf: instanceof vs isOfType vs isOfTypeStrict', () => {
   beforeAll(() => {
     updateOptions({ devMarker: false, autofillLabels: true });
-    REGISTRY.clear();
   });
 
   afterAll(() => {
-    REGISTRY.clear();
     updateOptions({ devMarker: true, autofillLabels: false });
   });
 
@@ -186,9 +180,6 @@ describe('Perf: instanceof vs isOfType vs isOfTypeStrict', () => {
         'isOfTypeStrict instance total ms': isOfTypeStricInstMs,
         'isOfTypeStrict instance per-op ms': isOfTypeStricInstMs / CHECK_ITERATIONS,
       });
-
-      // small pause/cleanup between scenarios
-      REGISTRY.clear();
     }
 
     // Print results in a friendly table
@@ -224,10 +215,6 @@ describe('Perf: instanceof vs isOfType vs isOfTypeStrict', () => {
     // Pass test (measurement only)
     expect(true).toBe(true);
   }, 120000);
-
-  test('free registry', () => {
-    REGISTRY.replaceRegistry(null);
-  });
 });
 
 //

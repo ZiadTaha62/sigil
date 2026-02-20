@@ -70,35 +70,3 @@ export const __LABEL_LINEAGE__ = Symbol.for('@Sigil.__LABEL_LINEAGE__');
  * @constant {symbol}
  */
 export const __LABEL_SET__ = Symbol.for('@Sigil.__LABEL_SET__');
-
-/**
- * Symbol used to store the runtime type symbol for a sigil constructor.
- *
- * This symbol (usually created via `Symbol.for(label)`) is the canonical runtime
- * identifier used by `isOfType` checks.
- *
- * @internal
- * @constant {symbol}
- */
-export const __TYPE__ = Symbol.for('@Sigil.__TYPE__');
-
-/**
- * Symbol used to store the linearized sigil type symbol chain for a constructor.
- *
- * The value stored is an array of `symbol`s representing parent → child type symbols,
- * useful for strict lineage comparisons.
- *
- * @internal
- * @constant {symbol}
- */
-export const __TYPE_LINEAGE__ = Symbol.for('@Sigil.__TYPE_LINEAGE__');
-
-/**
- * Symbol used to store the sigil type symbol set for a constructor.
- *
- * The value stored is a `Set<symbol>` built from `__TYPE_LINEAGE__` for O(1) membership checks.
- *
- * @internal
- * @constant {symbol}
- */
-export const __TYPE_SET__ = Symbol.for('@Sigil.__TYPE_SET__');

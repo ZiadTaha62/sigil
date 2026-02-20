@@ -18,10 +18,9 @@
     "lint": "eslint --fix",
     "format": "prettier --write",
     "typecheck": "tsc --noEmit",
-    "test": "jest --detectOpenHandles tests && tsd",
+    "test": "npm run test:unit && npm run test:performance && npm run test:types",
     "test:unit": "jest --detectOpenHandles tests/unit --coverage",
     "test:unit:sigil": "jest --detectOpenHandles tests/unit/sigil.test.ts",
-    "test:unit:registryDeprecated": "jest --detectOpenHandles tests/unit/registryDeprecated.test.ts",
     "test:performance": "jest --detectOpenHandles tests/performance",
     "test:performance:creation": "jest --detectOpenHandles tests/performance/creation.test.ts",
     "test:performance:instanceof": "jest --detectOpenHandles tests/performance/instanceof.test.ts",
@@ -74,5 +73,8 @@
     "tsd": "^0.33.0",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@paralleldrive/cuid2": "^3.3.0"
   }
 }

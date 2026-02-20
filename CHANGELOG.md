@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0] - 2026-02-20
+
+### Breaking changes
+
+All `SigilRegistry`options, methods and classes are removed.
+
 ## [1.3.0] - 2026-02-18
 
 ### Added
