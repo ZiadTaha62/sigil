@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.2] - 2026-02-21
+
+### Changed
+
+- Patched types
+
 ## [2.0.1] - 2026-02-21
 
 ### Removed

@@ -1,4 +1,5 @@
 import { Sigilify } from './mixin';
+import type { GetInstance } from './types';
 
 /**
  * A minimal root Sigil class used by the library as a base identity.
@@ -7,7 +8,7 @@ import { Sigilify } from './mixin';
  * class for other sigil classes or for debugging/inspection.
  */
 export const Sigil = Sigilify(class {}, 'Sigil');
-export type Sigil = InstanceType<typeof Sigil>;
+export type Sigil = GetInstance<typeof Sigil>;
 
 /**
  * A sigil variant of the built-in `Error` constructor used by the library
@@ -17,4 +18,4 @@ export type Sigil = InstanceType<typeof Sigil>;
  * runtime checks (e.g. `SigilError.isOfType(someError)`).
  */
 export const SigilError = Sigilify(Error, 'SigilError');
-export type SigilError = InstanceType<typeof SigilError>;
+export type SigilError = GetInstance<typeof SigilError>;

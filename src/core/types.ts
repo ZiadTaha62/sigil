@@ -62,7 +62,7 @@ export interface ISigilStatic<L extends string = string, P extends Function = ne
    * @param other - The object to test.
    * @returns A type guard asserting `other` is an instance of the constructor.
    */
-  isOfType<T extends ISigil>(this: T, other: unknown): other is InstanceType<T>;
+  isOfType<T extends ISigilStatic>(this: T, other: unknown): other is GetInstance<T>;
 
   /**
    * Strict lineage comparison: verifies that the calling constructor's type
@@ -76,7 +76,7 @@ export interface ISigilStatic<L extends string = string, P extends Function = ne
    * @param other - The object to test.
    * @returns A type guard asserting `other` is an instance whose lineage matches exactly.
    */
-  isOfTypeStrict<T extends ISigil>(this: T, other: unknown): other is InstanceType<T>;
+  isOfTypeStrict<T extends ISigilStatic>(this: T, other: unknown): other is GetInstance<T>;
 }
 
 /**
@@ -103,6 +103,33 @@ export interface ISigilInstance<L extends string = string, P extends Function = 
   getSigilLabelLineage(): readonly string[];
   /** Returns copy of sigil type label set of the class constructor. */
   getSigilLabelSet(): Readonly<Set<string>>;
+  /**
+   * Check whether `other` is (or inherits from) the type represented by the
+   * calling constructor. Uses the other instance's `SigilLabelSet` to check
+   * membership. Works in O(1) and is reliable as long as `OPTIONS.skipLabelInheritanceCheck` is `false`.
+   *
+   * This replaces `instanceof` so that checks remain valid across bundles/realms
+   * and when subclassing.
+   *
+   * @typeParam T - The specific sigil constructor (`this`).
+   * @param this - The constructor performing the type check.
+   * @param other - The object to test.
+   * @returns A type guard asserting `other` is an instance of the constructor.
+   */
+  isOfType<T extends ISigilInstance>(this: T, other: unknown): other is GetInstance<T>;
+  /**
+   * Strict lineage comparison: verifies that the calling constructor's type
+   * lineage (by label) matches the `other`'s lineage element-by-element.
+   *
+   * Works in O(n) where `n` is the lineage length and is useful when order
+   * and exact ancestry must be confirmed. reliable when `OPTIONS.skipLabelInheritanceCheck` is `false`.
+   *
+   * @typeParam T - The specific sigil constructor (`this`).
+   * @param this - The constructor performing the strict check.
+   * @param other - The object to test.
+   * @returns A type guard asserting `other` is an instance whose lineage matches exactly.
+   */
+  isOfTypeStrict<T extends ISigilInstance>(this: T, other: unknown): other is GetInstance<T>;
 }
 
 /**
