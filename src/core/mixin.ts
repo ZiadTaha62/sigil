@@ -11,7 +11,14 @@ import {
 } from './helpers';
 import type { SigilOptions } from './options';
 import { __LABEL__, __LABEL_LINEAGE__, __LABEL_SET__ } from './symbols';
-import type { Constructor, ISigil, Prettify, GetInstance, ConstructorAbstract } from './types';
+import type {
+  Constructor,
+  ISigil,
+  Prettify,
+  GetInstance,
+  ConstructorAbstract,
+  ISigilInstance,
+} from './types';
 import { __DEV__ } from './constants';
 
 /**
@@ -45,7 +52,7 @@ export function Sigilify<B extends Constructor, L extends string>(
   } else l = generateRandomLabel();
 
   // extend actual class
-  class Sigilified extends Base {
+  class Sigilified extends Base implements ISigilInstance {
     /**
      * Compile-time nominal brand that encodes the class label `L` plus parent's brand keys `BrandOf<P>`.
      *
@@ -290,7 +297,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
   } else l = generateRandomLabel();
 
   // extend actual class
-  abstract class Sigilified extends Base {
+  abstract class Sigilified extends Base implements ISigilInstance {
     /**
      * Compile-time nominal brand that encodes the class label `L` plus parent's brand keys `BrandOf<P>`.
      *

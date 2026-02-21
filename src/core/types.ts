@@ -97,8 +97,6 @@ export interface ISigilInstance<L extends string = string, P extends Function = 
   readonly __SIGIL_BRAND__: Prettify<{ [k in L]: true } & SigilBrandOf<P>>;
   /** Returns human-readable sigil label of the class constructor. */
   getSigilLabel(): string;
-  /** Returns runtime sigil type label of the class constructor. */
-  getSigilType(): string;
   /** Returns copy of sigil type label lineage of the class constructor. */
   getSigilLabelLineage(): readonly string[];
   /** Returns copy of sigil type label set of the class constructor. */
