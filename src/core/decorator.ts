@@ -11,17 +11,6 @@ import { __DEV__ } from './constants';
 /**
  * Class decorator factory that attaches sigil statics to a class constructor.
  *
- * Usage:
- * ```ts
- * @WithSigil('@myorg/mypkg.MyClass')
- * class MyClass { ... }
- * ```
- *
- * The returned decorator:
- * - validates the provided label (via `verifyLabel`)
- * - performs inheritance checks (via `checkInheritance`) in DEV builds
- * - attaches sigil-related statics to the constructor (via `decorateCtor`)
- *
  * Notes:
  * - This decorator is intended to be applied to classes only. When used
  *   incorrectly (e.g. on a property), it is a no-op.

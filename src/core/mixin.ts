@@ -22,12 +22,7 @@ import type {
 import { __DEV__ } from './constants';
 
 /**
- * Mixin factory that augments an existing class with Sigil runtime metadata and
- * helpers.
- *
- * The returned class:
- * - exposes static helpers such as `SigilLabel`, `SigilType`, `isOfType`, and `isOfTypeStrict`
- * - exposes instance helpers such as `getSigilLabel`, `getSigilType`, etc.
+ * Mixin factory that augments an existing class with Sigil runtime metadata and helpers.
  *
  * @param Base - The base constructor to extend.
  * @param label - Optional identity label to attach to the resulting class (e.g. '@scope/pkg.ClassName').
@@ -267,12 +262,7 @@ export function Sigilify<B extends Constructor, L extends string>(
 }
 
 /**
- * Mixin factory that augments an existing class with Sigil runtime metadata and
- * helpers. Accept and return 'abstract' class.
- *
- * The returned class:
- * - exposes static helpers such as `SigilLabel`, `SigilType`, `isOfType`, and `isOfTypeStrict`
- * - exposes instance helpers such as `getSigilLabel`, `getSigilType`, etc.
+ * Mixin factory that augments an existing class with Sigil runtime metadata and helpers. Accept and return 'abstract' class.
  *
  * @param Base - The base constructor to extend.
  * @param label - Optional identity label to attach to the resulting class (e.g. '@scope/pkg.ClassName').

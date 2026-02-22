@@ -62,23 +62,29 @@ export const OPTIONS: Required<SigilOptions> = {
  *
  * @param opts - Partial options to merge into the global `OPTIONS` object.
  */
-export const updateOptions = (opts: SigilOptions): void => {
-  for (const [k, v] of Object.entries(opts)) (OPTIONS as any)[k] = v;
+export const updateSigilOptions = (opts: SigilOptions): void => {
+  if (opts.autofillLabels) {
+    if (typeof opts.autofillLabels !== 'boolean')
+      throw new Error("'updateSigilOptions.autofillLabels' must be boolean");
+    OPTIONS.autofillLabels = opts.autofillLabels;
+  }
+  if (opts.skipLabelInheritanceCheck) {
+    if (typeof opts.skipLabelInheritanceCheck !== 'boolean')
+      throw new Error("'updateSigilOptions.skipLabelInheritanceCheck' must be boolean");
+    OPTIONS.skipLabelInheritanceCheck = opts.skipLabelInheritanceCheck;
+  }
+  if (opts.labelValidation) {
+    if (
+      opts.labelValidation !== null &&
+      typeof opts.labelValidation !== 'function' &&
+      !(opts.labelValidation instanceof RegExp)
+    )
+      throw new Error(
+        "'updateSigilOptions.labelValidation' must be null, function or regex expression"
+      );
+    OPTIONS.labelValidation = opts.labelValidation;
+  }
 };
-
-/**
- * Default runtime options used by the Sigil library.
- *
- * @internal
- */
-const DEFAULT_OPTIONS: Required<SigilOptions> = {
-  labelValidation: null,
-  skipLabelInheritanceCheck: false,
-  autofillLabels: false,
-};
-
-// populate 'OPTIONS' with DEFAULT_OPTIONS
-updateOptions(DEFAULT_OPTIONS);
 
 /** -----------------------------------------
  *  Label validation

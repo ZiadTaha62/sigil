@@ -4,7 +4,7 @@
  * - compares Sigil (withSigil/Sigil base) vs normal plain classes
  */
 
-import { Sigil, Sigilify, withSigil, updateOptions } from '../../src';
+import { Sigil, Sigilify, withSigil, updateSigilOptions } from '../../src';
 
 const DEF_ITERATIONS = 2000;
 const INST_ITERATIONS = 10000;
@@ -197,11 +197,11 @@ async function benchmarkScenario(
 describe('Performance: class creation comparisons (Sigil vs Plain)', () => {
   // Try to remove dev-only overhead for clearer perf comparisons.
   beforeAll(() => {
-    updateOptions({ autofillLabels: true });
+    updateSigilOptions({ autofillLabels: true });
   });
 
   afterAll(() => {
-    updateOptions({ autofillLabels: false });
+    updateSigilOptions({ autofillLabels: false });
   });
 
   // Keep tests non-flaky: don't assert thresholds, just print numbers.

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] - 2026-02-22
+
+### Changed
+
+- Changed name of `updateOptions` to be `updateSigilOptions`
+- Updated JSDOCs of multiple APIs
+
 ## [2.0.3] - 2026-02-21
 
 - Patched types
@@ -26,19 +33,19 @@ All notable changes to this project will be documented in this file.
 
 ### Breaking changes
 
-- All `SigilRegistry`options, methods and classes are removed.
+- All `SigilRegistry`options, methods and classes are removed
 
 ## [1.3.0] - 2026-02-18
 
 ### Added
 
-- `isOfType()` & `isOfTypeStrict()` now can be called from instances.
+- `isOfType()` & `isOfTypeStrict()` now can be called from instances
 
 ## [1.2.7] - 2026-02-13
 
 ### Added
 
-- Support for `abstract` classes using `SigilifyAbstract` factory.
+- Support for `abstract` classes using `SigilifyAbstract` factory
 
 ## [1.2.6] - 2026-02-11
 

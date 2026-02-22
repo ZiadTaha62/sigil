@@ -13,13 +13,6 @@ import { __DEV__ } from './constants';
  * HOF (class inhancer) that attaches runtime sigil metadata to Sigil class.
  * Alternative to '@WithSigil' if you prefer HOFs.
  *
- * This does both:
- *  - validate (and autofill) a label,
- *  - perform runtime decoration (via `decorateCtor`),
- *
- * The helper is idempotent: `decorateCtor` will register the label and throw if already
- * decorated; we handle this gracefully in DEV to support HMR flows.
- *
  * @typeParam S - Constructor type (should be an ISigil).
  * @typeParam L - Label literal to attach.
  * @param Class - The constructor (class) to enhance.
@@ -53,15 +46,7 @@ export function withSigil<S extends Function, L extends string = string>(
 }
 
 /**
- * Convenience helper that combine 'withSigil' and 'typeSigil'.
- *
- * This does both:
- *  - validate (and autofill) a label,
- *  - perform runtime decoration (via `decorateCtor`),
- *  - return the constructor typed as `TypedSigil`.
- *
- * The helper is idempotent: `decorateCtor` will register the label and throw if already
- * decorated; we handle this gracefully in DEV to support HMR flows.
+ * Convenience helper that combine 'withSigil' and update 'SigilBrand'.
  *
  * @typeParam S - Constructor type (should be an ISigil).
  * @typeParam L - Label literal to attach.

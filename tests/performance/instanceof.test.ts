@@ -12,7 +12,7 @@
  *  - Use --runInBand and --expose-gc for more stable results if desired.
  */
 
-import { Sigil, withSigil, updateOptions } from '../../src';
+import { Sigil, withSigil, updateSigilOptions } from '../../src';
 
 const CHECK_ITERATIONS = 200_000; // number of check ops per measured run
 const WARMUP_ITER = 1000;
@@ -102,11 +102,11 @@ function benchCheck(fn: () => void, iterations: number): number {
 
 describe('Perf: instanceof vs isOfType vs isOfTypeStrict', () => {
   beforeAll(() => {
-    updateOptions({ autofillLabels: true });
+    updateSigilOptions({ autofillLabels: true });
   });
 
   afterAll(() => {
-    updateOptions({ autofillLabels: false });
+    updateSigilOptions({ autofillLabels: false });
   });
 
   test('identity checks across depths (logged results)', async () => {

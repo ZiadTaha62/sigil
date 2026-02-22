@@ -5,7 +5,7 @@ import {
   WithSigil,
   isSigilCtor,
   isSigilInstance,
-  updateOptions,
+  updateSigilOptions,
   withSigilTyped,
 } from '../../src';
 
@@ -13,7 +13,7 @@ describe('Sigil core runtime behavior', () => {
   // Reset registry and options between tests to isolate state
   beforeEach(() => {
     // Reset dev options to defaults that enable DEV checks
-    updateOptions({
+    updateSigilOptions({
       autofillLabels: false,
       skipLabelInheritanceCheck: false,
     });
@@ -21,7 +21,7 @@ describe('Sigil core runtime behavior', () => {
 
   afterEach(() => {
     // Restore options to a safe default
-    updateOptions({
+    updateSigilOptions({
       autofillLabels: false,
       skipLabelInheritanceCheck: false,
     });

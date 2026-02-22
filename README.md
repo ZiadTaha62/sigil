@@ -156,8 +156,8 @@ Migrating old code into `Sigil` can be done seamlessly with this set-up:
 1. Set `SigilOptions.autofillLabels` to `true` at the start of the app so no errors are thrown in the migration stage:
 
 ```ts
-import { updateOptions } from '@vicin/sigil';
-updateOptions({ autofillLabels: true });
+import { updateSigilOptions } from '@vicin/sigil';
+updateSigilOptions({ autofillLabels: true });
 ```
 
 2. Pass your base class to `Sigilify` mixin:
@@ -384,7 +384,7 @@ class X extends Sigil {
   - `isInheritanceChecked(ctor)`
 
 - **Options:**
-  - `updateOptions(opts)`
+  - `updateSigilOptions(opts)`
   - `DEFAULT_LABEL_REGEX`
 
 - **Types:**
@@ -407,7 +407,7 @@ class X extends Sigil {
 - `withSigilTyped(Class, label?, opts?)`: like `withSigil` but narrows the TypeScript type to include brands.
 - `isSigilCtor(value)`: `true` if `value` is a `Sigil` constructor.
 - `isSigilInstance(value)`: `true` if `value` is an instance of a `Sigil` constructor.
-- `updateOptions(opts)`: change global runtime options before `Sigil` decoration (e.g., `autofillLabels`).
+- `updateSigilOptions(opts)`: change global runtime options before `Sigil` decoration (e.g., `autofillLabels`).
 - `DEFAULT_LABEL_REGEX`: regex that ensures structure of `@scope/package.ClassName` to all labels, it's advised to use it as your `SigilOptions.labelValidation`
 
 ### Instance & static helpers provided by Sigilified constructors
@@ -437,9 +437,9 @@ Instances of sigilified classes expose instance helpers:
 Customize behavior globally at startup:
 
 ```ts
-import { updateOptions } from '@vicin/sigil';
+import { updateSigilOptions } from '@vicin/sigil';
 
-updateOptions({
+updateSigilOptions({
   autofillLabels: false, // Automatically label unlabeled subclasses
   skipLabelInheritanceCheck: false, // Bypass dev inheritance checks -- ALMOST NEVER WANT TO SET THIS TO TRUE, Use 'autofillLabels: true' instead.
   labelValidation: null, // Function or regex, Enforce label format
@@ -452,13 +452,13 @@ Values defined in previous example are defaults, per-class overrides available i
 
 ## Minimal mode
 
-`updateOptions({ autofillLabels: true });` – Enables background operation without explicit labels:
+`updateSigilOptions({ autofillLabels: true });` – Enables background operation without explicit labels:
 
 ```ts
-import { Sigil, updateOptions } from '@vicin/sigil';
+import { Sigil, updateSigilOptions } from '@vicin/sigil';
 
 // run at the start of the app
-updateOptions({ autofillLabels: true });
+updateSigilOptions({ autofillLabels: true });
 
 // No decorators or HOF needed to use 'isOfType' ('instanceof' replacement)
 class A extends Sigil {}

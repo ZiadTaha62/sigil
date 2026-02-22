@@ -269,9 +269,6 @@ export function markInheritanceChecked(ctor: Function) {
 /**
  * Runtime predicate that checks whether the provided value is a sigil constructor.
  *
- * This is a lightweight check that verifies the presence of an internal
- * symbol attached to the constructor.
- *
  * @param ctor - Constructor to test.
  * @returns `true` if `value` is a sigil constructor, otherwise `false`.
  */
@@ -295,8 +292,6 @@ export function isSigilInstance(inst: unknown): inst is GetInstance<ISigil> {
 /**
  * Check whether the provided constructor was marked as a sigil base constructor.
  *
- * Uses `Object.hasOwn` to ensure we only check own properties.
- *
  * @param ctor - Constructor to check.
  * @returns `true` if `ctor` is a sigil base constructor.
  */
@@ -306,8 +301,6 @@ export function isSigilBaseCtor(ctor: Function): ctor is ISigil {
 
 /**
  * Check whether the provided object is an instance of a sigil base constructor.
- *
- * This resolves the instance's constructor and delegates to `isSigilBaseCtor`.
  *
  * @param inst - The instance to test.
  * @returns `true` if `inst` is an instance of a sigil base constructor.
@@ -321,8 +314,6 @@ export function isSigilBaseInstance(inst: unknown): inst is GetInstance<ISigil> 
 /**
  * Returns whether the constructor has been explicitly decorated with `WithSigil`.
  *
- * This is an own-property check and does not traverse the prototype chain.
- *
  * @internal
  * @param ctor - Constructor to test.
  * @returns `true` if the constructor is explicitly decorated.
@@ -333,8 +324,6 @@ export function isDecorated(ctor: Function): boolean {
 
 /**
  * Returns whether inheritance checks have already been performed for the constructor.
- *
- * This is used to avoid repeated checks during development (DEV-only checks).
  *
  * @internal
  * @param ctor - Constructor to test.
