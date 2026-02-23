@@ -1,9 +1,6 @@
 /**
  * Symbol to uniquely identify sigil classes.
  *
- * Uses `Symbol.for()` so the symbol is stable across multiple bundles/realms
- * that share the same global symbol registry.
- *
  * @internal
  * @constant {symbol}
  */
@@ -42,7 +39,7 @@ export const __DECORATED__ = Symbol.for('@Sigil.__DECORATED__');
 export const __INHERITANCE_CHECKED__ = Symbol.for('@Sigil.__INHERITANCE_CHECKED__');
 
 /**
- * Symbol used to store the human-readable label for a sigil constructor.
+ * Symbol used to store the identity label for a sigil constructor.
  *
  * Stored on the constructor as a non-enumerable property.
  *
@@ -50,6 +47,16 @@ export const __INHERITANCE_CHECKED__ = Symbol.for('@Sigil.__INHERITANCE_CHECKED_
  * @constant {symbol}
  */
 export const __LABEL__ = Symbol.for('@Sigil.__LABEL__');
+
+/**
+ * Symbol used to store the human-readable label for a sigil constructor, it can be inherited if no label is deined.
+ *
+ * Stored on the constructor as a non-enumerable property.
+ *
+ * @internal
+ * @constant {symbol}
+ */
+export const __EFFECTIVE_LABEL__ = Symbol.for('@Sigil.__EFFECTIVE_LABEL__');
 
 /**
  * Symbol used to store the linearized label lineage for a sigil constructor.

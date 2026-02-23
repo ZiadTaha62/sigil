@@ -5,12 +5,12 @@
 > - 🎉 v2.0.0 is out! Happy coding! 😄💻
 > - 📄 **Changelog:** [CHANGELOG.md](./CHANGELOG.md)
 
-`Sigil` is a lightweight TypeScript library for creating nominal identity classes with compile-time branding and reliable runtime type checks. It organizes class identities across your codebase and gives you the power of **nominal typing** and **safe cross-bundle class checks** where each class constructor is stored under a unique label.
+`Sigil` replaces `instanceof` across bundles, enforces nominal class identity, and makes inheritance-aware runtime type checks reliable in large TypeScript systems. It organizes class identities across your codebase and gives you the power of **nominal typing** and **safe cross-bundle class checks** where each class constructor is stored under a unique label.
 
 > **Key ideas:**
 >
+> - **Reliable Runtime Checks:** Uses labels instead of instanceof for cross-bundle reliability.
 > - **Nominal Typing at Compile Time:** Distinguishes structurally similar types (e.g., UserId vs. PostId).
-> - **Reliable Runtime Checks:** Uses symbols instead of instanceof for cross-bundle reliability.
 > - **Inheritance Awareness:** Tracks lineages for subtype/supertype checks.
 
 ## Important Notes Before Using
@@ -22,7 +22,7 @@
 
 ## Why Registry is dropped
 
-Although registry added label checks and central class management but it also introduced complexity, especially when mutiple packages tried to use it simultaneously, So in v2 we decided to omit it entirely and minimize API surface.
+In v2 we simplified the architecture to remove global registries and reduce complexity across packages.
 
 ---
 
@@ -48,8 +48,9 @@ Although registry added label checks and central class management but it also in
 - [API reference](#api-reference)
 - [Options & configuration](#options--configuration)
 - [Minimal mode](#minimal-mode)
+- [Strict mode](#strict-mode)
+- [## Which pattern should I use?](#which-pattern-should-i-use)
 - [Troubleshooting & FAQ](#troubleshooting--faq)
-- [Phantom](#phantom)
 - [Contributing](#contributing)
 - [License](#license)
 - [Author](#author)
@@ -151,16 +152,9 @@ console.log(User.isOfType(u)); // true
 
 ### Migration
 
-Migrating old code into `Sigil` can be done seamlessly with this set-up:
+Migrating old code into `Sigil` can be done with extra couple lines of code only:
 
-1. Set `SigilOptions.autofillLabels` to `true` at the start of the app so no errors are thrown in the migration stage:
-
-```ts
-import { updateSigilOptions } from '@vicin/sigil';
-updateSigilOptions({ autofillLabels: true });
-```
-
-2. Pass your base class to `Sigilify` mixin:
+1. Pass your base class to `Sigilify` mixin:
 
 ```ts
 import { Sigilify } from '@vicin/sigil';
@@ -168,7 +162,7 @@ import { Sigilify } from '@vicin/sigil';
 const MySigilBaseClass = Sigilify(MyBaseClass);
 ```
 
-3. Or extend it with `Sigil`:
+2. Or extend it with `Sigil`:
 
 ```ts
 import { Sigil } from '@vicin/sigil';
@@ -186,11 +180,9 @@ This section states clearly what `Sigil` provides and what it does **not** provi
 
 ### What Sigil guarantees
 
-**1. Stable label → symbol mapping within the same JS global symbol registry.**
+**1. Reliable runtime identity (when used as intended).**
 
-**2. Reliable runtime identity (when used as intended).**
-
-**3. Nominal typing that is inheritance-aware**
+**2. Nominal typing that is inheritance-aware**
 
 ### What Sigil does not guarantee
 
@@ -204,10 +196,10 @@ This section states clearly what `Sigil` provides and what it does **not** provi
 
 ### Terminology
 
-- **Label**: A human-readable identity (string) such as `@scope/pkg.ClassName`.
-- **SigilType (symbol)**: `Symbol.for(label)` — for runtime stability.
-- **Type lineage**: Array of symbols for ancestry.
-- **Type set**: Set of symbols for fast checks.
+- **Label**: An identity (string) such as `@scope/pkg.ClassName`, but can be random string (e.g. `@Sigil.auto-dq62ib6jnvmmlfbjhxh2937h`) if no label passed.
+- **EffictiveLabel:** A human-readable (string) such as `@scope/pkg.ClassName`, if no label is passed it inherit the last defined label.
+- **Label lineage**: Array of labels for ancestry.
+- **Label set**: Set of labels for fast checks.
 - **Brand**: TypeScript marker (`__SIGIL_BRAND__`) for nominal types.
 
 ---
@@ -217,6 +209,15 @@ This section states clearly what `Sigil` provides and what it does **not** provi
 Sigil addresses issues in large monorepos and Domain-Driven Design (DDD):
 
 - **Unreliable `instanceof`:** Bundling and HMR cause class redefinitions, breaking checks.
+
+```ts
+// Broken in monorepo or HMR
+if (obj instanceof User) { ... }
+
+// With Sigil
+if (User.isOfType(obj)) { ... } // This still works even if User was bundled twice.
+```
+
 - **Manual Branding Overhead:** Custom identifiers lead to boilerplate and maintenance issues.
 
 `Sigil` abstracts these into a **centralized system**, making identity management **explicit** and **error-resistant** if defined the right way.
@@ -225,7 +226,7 @@ Sigil addresses issues in large monorepos and Domain-Driven Design (DDD):
 
 - **Runtime Contract:** Established via extending `Sigil` or using `Sigilify` mixin.
 - **Update metadata:** With each new child, HOF or decorators are used to attach metadata and update nominal type.
-- **Accessors & Type guards:** Classes expose `SigilLabel`, `SigilType`; instances provide `getSigilLabel()` and `getSigilType()` for querying unique identifier label or symbol. also when typed it hold nominal identity used to prevent subtle bugs.
+- **Accessors & Type guards:** Classes expose `SigilLabel`; instances provide `getSigilLabel()` for querying unique identifier label. also when typed it hold nominal identity used to prevent subtle bugs.
 
 ```ts
 import { Sigil, withSigilTyped, GetInstance } from '@vicin/sigil';
@@ -239,9 +240,9 @@ type MyClass = GetInstance<typeof MyClass>;
 
 // Accessors & Type guards
 console.log(MyClass.SigilLabel); // '@scope/package.MyClass'
-console.log(new MyClass().getSigilType()); // Symbol.for('@scope/package.MyClass')
+console.log(new MyClass().getSigilLabel()); // '@scope/package.MyClass'
 console.log(MyClass.isOfType(new MyClass())); // true
-function x(c: MyClass) {} // Only instances created by 'MyClass' can be passed
+function x(c: MyClass) {} // Only instances of 'MyClass' can be passed
 ```
 
 ---
@@ -315,7 +316,7 @@ type Y = GetInstance<typeof Y>;
 const y = new Y(); // <-- Type here is any
 ```
 
-Unfortunately this is a limitation in typescript and I couldn't find any solution to address it.
+This is a known TypeScript limitation.
 
 ---
 
@@ -414,7 +415,8 @@ class X extends Sigil {
 
 When a constructor is decorated/sigilified it will expose the following **static** getters/methods:
 
-- `SigilLabel` — the human label string.
+- `SigilLabel` — the identity label string.
+- `SigilEffectiveLabel` — the human label string.
 - `SigilLabelLineage` — readonly array of labels representing parent → child.
 - `SigilLabelSet` — readonly `Set<string>` for O(1) checks.
 - `isSigilified(obj)` — runtime predicate that delegates to `isSigilInstance`.
@@ -423,10 +425,10 @@ When a constructor is decorated/sigilified it will expose the following **static
 
 Instances of sigilified classes expose instance helpers:
 
-- `getSigilLabel()` — returns the human label.
-- `getSigilType()` — runtime symbol.
-- `getSigilTypeLineage()` — returns lineage array.
-- `getSigilTypeSet()` — returns readonly Set.
+- `getSigilLabel()` — returns the identity label.
+- `getSigilEffectiveLabel()` — returns the human label.
+- `getSigilLabelLineage()` — returns lineage array.
+- `getSigilLabelSet()` — returns readonly Set.
 - `isOfType(other)` — O(1) membership test using `other`'s `__LABEL_SET__`.
 - `isOfTypeStrict(other)` — strict lineage comparison element-by-element.
 
@@ -440,8 +442,8 @@ Customize behavior globally at startup:
 import { updateSigilOptions } from '@vicin/sigil';
 
 updateSigilOptions({
-  autofillLabels: false, // Automatically label unlabeled subclasses
-  skipLabelInheritanceCheck: false, // Bypass dev inheritance checks -- ALMOST NEVER WANT TO SET THIS TO TRUE, Use 'autofillLabels: true' instead.
+  autofillLabels: true, // Automatically label unlabeled subclasses
+  skipLabelInheritanceCheck: false, // Bypass dev inheritance checks -- ALMOST NEVER WANT TO SET THIS TO TRUE
   labelValidation: null, // Function or regex, Enforce label format
 });
 ```
@@ -452,19 +454,37 @@ Values defined in previous example are defaults, per-class overrides available i
 
 ## Minimal mode
 
-`updateSigilOptions({ autofillLabels: true });` – Enables background operation without explicit labels:
+You can ignore all decorators and HOFs and just make base class extend `Sigil`:
 
 ```ts
 import { Sigil, updateSigilOptions } from '@vicin/sigil';
-
-// run at the start of the app
-updateSigilOptions({ autofillLabels: true });
 
 // No decorators or HOF needed to use 'isOfType' ('instanceof' replacement)
 class A extends Sigil {}
 class B extends A {}
 class C extends B {}
 ```
+
+## Strict mode
+
+If you want to inforce passing a label to every class defined in your codebase, you can set `autofillLabels` to `false` at the start of app:
+
+```ts
+import { updateSigilOptions } from '@vicin/sigil';
+
+updateSigilOptions({ autofillLabels: false });
+```
+
+Now if you forgot to pass a label error is thrown.
+
+---
+
+## Which pattern should I use?
+
+- Want simplest setup? → Extend `Sigil`
+- Want full nominal typing? → Use HOF pattern
+- Want clean class bodies? → Use HOF
+- Want fewer wrapper exports? → Use Decorators
 
 ---
 
@@ -473,17 +493,6 @@ class C extends B {}
 - **Dev Extension Errors:** Add labels or enable autofillLabels.
 - **Anonymous Class Errors:** Export untyped bases.
 - **Selective Labeling:** Use `autofillLabels: true` or empty `@WithSigil()` for auto-generation.
-
----
-
-## Phantom
-
-`Phantom` is another lightweight TypeScript library I created for achieving **nominal typing** on primitives and objects through type-only metadata. It solves the problem of structural typing in TypeScript allowing accidental misuse of identical shapes (e.g., confusing `UserId` and `PostId` as both strings) by enabling compile-time distinctions with features like **brands**, **constrained identities**, **variants for states**, **additive traits**, and **reversible transformations**. This makes it ideal for domain-driven design (DDD) without runtime overhead.
-
-`Phantom` works seamlessly in conjunction with `Sigil`, use `Sigil` for nominal identity on classes (runtime-safe checks across bundles), and `Phantom` for primitives/objects. Together, they provide **end-to-end type safety**: e.g., a Sigil-branded `User` class could hold a Phantom-branded `UserId` string property, enforcing domain boundaries at both compile and runtime.
-
-- **GitHub: [@phantom](https://github.com/ZiadTaha62/phantom)**
-- **NPM: [@phantom](https://www.npmjs.com/package/@vicin/phantom)**
 
 ---
 

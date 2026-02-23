@@ -3,6 +3,7 @@ import {
   __DECORATED__,
   __INHERITANCE_CHECKED__,
   __LABEL__,
+  __EFFECTIVE_LABEL__,
   __SIGIL_BASE__,
   __SIGIL__,
   __LABEL_LINEAGE__,
@@ -10,7 +11,6 @@ import {
 } from './symbols';
 import type { ISigil, GetInstance } from './types';
 import { createId } from '@paralleldrive/cuid2';
-import { __DEV__ } from './constants';
 
 /** -----------------------------------------
  *  High level helpers
@@ -34,20 +34,32 @@ import { __DEV__ } from './constants';
  * @param opts - Options object to override any global options if needed.
  * @throws Error when `ctor` is already decorated.
  */
-export function decorateCtor(ctor: Function, label: string, isMixin: boolean = false) {
+export function decorateCtor(
+  ctor: Function,
+  label: string,
+  runtime?: { isInheritanceCheck?: boolean; isMixin?: boolean }
+) {
   // if already decorated throw error
-  if (isDecorated(ctor))
-    throw new Error(
-      `Constructor ${ctor} is already decorated. if you are using 'withSigilTyped()' & '@WithSigil()' at the same time remove one of them.`
-    );
+  if (process.env.NODE_ENV !== 'production')
+    if (isDecorated(ctor))
+      throw new Error(
+        `Constructor ${ctor} is already decorated. if you are using 'withSigilTyped()' & '@WithSigil()' at the same time remove one of them.`
+      );
 
   // attach basic runtime statics
   Object.defineProperty(ctor, __LABEL__, {
     value: label,
-    configurable: false,
+    configurable: true,
     enumerable: false,
     writable: false,
   });
+  if (!runtime?.isInheritanceCheck)
+    Object.defineProperty(ctor, __EFFECTIVE_LABEL__, {
+      value: label,
+      configurable: true,
+      enumerable: false,
+      writable: false,
+    });
 
   // get parent chain (safe if parent hasn't been augmented yet — uses existing value or empty)
   const parent = Object.getPrototypeOf(ctor);
@@ -55,56 +67,55 @@ export function decorateCtor(ctor: Function, label: string, isMixin: boolean = f
 
   // generate Ctor chain, if mixin (Sigilify function) then append 'Sigil' at the start
   const ctorChain =
-    isMixin && label !== 'Sigil' ? ['Sigil', ...parentChain, label] : [...parentChain, label];
+    runtime?.isMixin && label !== 'Sigil'
+      ? ['Sigil', ...parentChain, label]
+      : [...parentChain, label];
 
   // attach symbol lineage and set
   Object.defineProperty(ctor, __LABEL_LINEAGE__, {
     value: ctorChain,
-    configurable: false,
+    configurable: true,
     enumerable: false,
     writable: false,
   });
   Object.defineProperty(ctor, __LABEL_SET__, {
     value: new Set(ctorChain),
-    configurable: false,
+    configurable: true,
     enumerable: false,
     writable: false,
   });
 
   // mark as decorated
-  markDecorated(ctor);
+  if (!runtime?.isInheritanceCheck) markDecorated(ctor);
 }
 
 /**
- * Perform development-only inheritance checks to ensure no ancestor classes
- * reuse the same sigil label.
+ * Perform inheritance checks to ensure no ancestor classes reuse the same sigil label.
  *
  * Behavior:
  * - No-op if `ctor` is not a sigil constructor.
- * - No-op in non-DEV builds.
- * - No-op if inheritance checks were already performed or `OPTIONS.skipLabelInheritanceCheck` is true.
+ * - No-op if inheritance checks were already performed.
+ * - No-op if `OPTIONS.skipLabelInheritanceCheck` is set to true.
  *
  * When a duplicate label is detected:
- * - If the class is explicitly decorated (`isDecorated`) or `OPTIONS.autofillLabels` is false,
- *   an Error is thrown describing the label collision.
- * - Otherwise (autofill enabled), a random label will be generated and assigned
- *   to the offending constructor via `decorateCtor`.
+ * - If the class is explicitly decorated (`isDecorated`) or `OPTIONS.autofillLabels` is false, And in
+ *   development build, an Error is thrown describing the label collision.
+ * - Otherwise, a random label will be generated and assigned to the offending constructor via `decorateCtor`.
  *
  * @internal
  * @param ctor - The constructor to validate.
  * @param opts - Options object to override any global options if needed.
- * @throws Error when a decorated subclass re-uses an ancestor's sigil label.
+ * @throws Error when a decorated subclass re-uses an ancestor's sigil label in development builds only.
  */
 export function checkInheritance(
-  ctor: Function,
+  ctor: ISigil,
   opts?: Pick<SigilOptions, 'skipLabelInheritanceCheck' | 'autofillLabels'>
 ) {
-  const skipLabelInheritanceCheck =
-    opts?.skipLabelInheritanceCheck ?? OPTIONS.skipLabelInheritanceCheck;
-  const autofillLabels = opts?.autofillLabels ?? OPTIONS.autofillLabels;
-
-  if (!isSigilCtor(ctor)) return;
-  if (isInheritanceChecked(ctor) || skipLabelInheritanceCheck) return;
+  if (
+    isInheritanceChecked(ctor) ||
+    (opts?.skipLabelInheritanceCheck ?? OPTIONS.skipLabelInheritanceCheck)
+  )
+    return;
 
   /** Array of all sigil constructors in the chain (starting with the provided ctor) */
   const ctors: ISigil[] = [ctor];
@@ -123,17 +134,17 @@ export function checkInheritance(
   for (let i = ctors.length - 1; i >= 0; i--) {
     const ctor = ctors[i];
     if (!ctor) continue;
-    let label = ctor.SigilLabel;
+    let label = (ctor as any)[__LABEL__];
     if (labelOwner.has(label)) {
-      if (isDecorated(ctor) || !autofillLabels) {
-        const ancestorName = labelOwner.get(label);
-        throw new Error(
-          `[Sigil Error] Class "${ctor.name}" re-uses Sigil label "${label}" from ancestor "${ancestorName}". ` +
-            `Each Sigil subclass must use a unique label. Did you forget to use "WithSigil(newLabel)" on the subclass?`
-        );
-      }
+      if (process.env.NODE_ENV !== 'production')
+        if (isDecorated(ctor) || !(opts?.autofillLabels ?? OPTIONS.autofillLabels))
+          throw new Error(
+            `[Sigil Error] Class "${ctor.name}" re-uses Sigil label "${label}" from ancestor "${labelOwner.get(label)}". ` +
+              `Each Sigil subclass must use a unique label. Did you forget to use "WithSigil(newLabel)" on the subclass?`
+          );
+
       label = generateRandomLabel();
-      decorateCtor(ctor, label);
+      decorateCtor(ctor, label, { isInheritanceCheck: true });
     }
     labelOwner.set(label, ctor.name);
   }
@@ -166,10 +177,11 @@ export function verifyLabel<L extends string>(
     if (labelValidation instanceof RegExp) valid = labelValidation.test(label);
     else valid = labelValidation(label);
 
-    if (!valid)
-      throw new Error(
-        `[Sigil] Invalid identity label "${label}". Make sure that supplied label matches validation regex or function.`
-      );
+    if (process.env.NODE_ENV !== 'production')
+      if (!valid)
+        throw new Error(
+          `[Sigil] Invalid identity label "${label}". Make sure that supplied label matches validation regex or function.`
+        );
   }
 }
 

@@ -8,9 +8,10 @@ import {
   markSigil,
   markSigilBase,
   verifyLabel,
+  isInheritanceChecked,
 } from './helpers';
-import type { SigilOptions } from './options';
-import { __LABEL__, __LABEL_LINEAGE__, __LABEL_SET__ } from './symbols';
+import { OPTIONS, type SigilOptions } from './options';
+import { __LABEL__, __EFFECTIVE_LABEL__, __LABEL_LINEAGE__, __LABEL_SET__ } from './symbols';
 import type {
   Constructor,
   ISigil,
@@ -19,7 +20,6 @@ import type {
   ConstructorAbstract,
   ISigilInstance,
 } from './types';
-import { __DEV__ } from './constants';
 
 /**
  * Mixin factory that augments an existing class with Sigil runtime metadata and helpers.
@@ -29,15 +29,15 @@ import { __DEV__ } from './constants';
  *                If not passed a random label is generated instead.
  * @param opts - Options object to override any global options if needed.
  * @returns A new abstract constructor that extends `Base` and includes Sigil statics/instance methods.
- * @throws Error if `Base` is already sigilized.
+ * @throws Error if `Base` is already sigilified.
  */
 export function Sigilify<B extends Constructor, L extends string>(
   Base: B,
   label?: L,
   opts?: SigilOptions
 ) {
-  // if siglified throw
-  if (isSigilCtor(Base)) throw new Error(`[Sigil Error] 'Sigilify(${label})' already siglified.`);
+  // if sigilified throw
+  if (isSigilCtor(Base)) throw new Error(`[Sigil Error] 'Sigilify(${label})' already sigilified.`);
 
   // generate random label if not passed and verify it
   let l: string;
@@ -64,10 +64,18 @@ export function Sigilify<B extends Constructor, L extends string>(
     >;
 
     /**
-     * Class-level human-readable label constant for this sigil constructor.
+     * Class-level identity label constant for this sigil constructor.
      */
     static get SigilLabel(): string {
+      if (!isInheritanceChecked(this)) checkInheritance(this);
       return (this as any)[__LABEL__];
+    }
+
+    /**
+     * Class-level human-readable label constant for this sigil constructor, last passed label in 'Sigil' chain by developer.
+     */
+    static get SigilEffectiveLabel(): string {
+      return (this as any)[__EFFECTIVE_LABEL__];
     }
 
     /**
@@ -78,6 +86,7 @@ export function Sigilify<B extends Constructor, L extends string>(
      * @returns An array of labels representing parent → child type labels.
      */
     static get SigilLabelLineage(): readonly string[] {
+      if (!isInheritanceChecked(this)) checkInheritance(this);
       return [...((this as any)[__LABEL_LINEAGE__] ?? [])];
     }
 
@@ -89,6 +98,7 @@ export function Sigilify<B extends Constructor, L extends string>(
      * @returns A Readonly Set of labels that represent the type lineage.
      */
     static get SigilLabelSet(): Readonly<Set<string>> {
+      if (!isInheritanceChecked(this)) checkInheritance(this);
       const set: Set<string> = new Set();
       for (const s of (this as any)[__LABEL_SET__]) set.add(s);
       return set;
@@ -119,13 +129,13 @@ export function Sigilify<B extends Constructor, L extends string>(
       // Resolve constructor; defensive null-check helps catch weird runtime cases.
       const ctor = getConstructor(this);
       if (!ctor) {
-        if (__DEV__)
+        if (process.env.NODE_ENV !== 'production')
           throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
         return;
       }
 
-      // Perform dev-only inheritance validation to ensure labels are unique across the chain.
-      if (__DEV__) checkInheritance(ctor);
+      // Perform inheritance validation to ensure labels are unique across the chain.
+      checkInheritance(ctor);
     }
 
     /**
@@ -206,18 +216,33 @@ export function Sigilify<B extends Constructor, L extends string>(
     }
 
     /**
-     * Returns the human-readable sigil label of this instance's constructor.
+     * Returns the identity sigil label of this instance's constructor.
      *
-     * @returns The label string (e.g. '@scope/pkg.ClassName') or '@Sigil.unknown' in DEV when constructor is missing.
+     * @returns The label string if passed (e.g. '@scope/pkg.ClassName'), random label if not passed (e.g. '@Sigil.auto-dq62ib6jnvmmlfbjhxh2937h') or '@Sigil.unknown' if constructor is missing.
      */
     getSigilLabel(): string {
       const ctor = getConstructor(this);
       if (!ctor) {
-        if (__DEV__)
-          throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
+        if (process.env.NODE_ENV !== 'production')
+          throw new Error(`[Sigil Error] Sigil class instance without constructor`);
         return '@Sigil.unknown';
       }
       return ctor.SigilLabel;
+    }
+
+    /**
+     * Returns the human-readable sigil label of this instance's constructor.
+     *
+     * @returns The last passed label string (e.g. '@scope/pkg.ClassName') or '@Sigil.unknown' if constructor is missing.
+     */
+    getSigilEffectiveLabel(): string {
+      const ctor = getConstructor(this);
+      if (!ctor) {
+        if (process.env.NODE_ENV !== 'production')
+          throw new Error(`[Sigil Error] Sigil class instance without constructor`);
+        return '@Sigil.unknown';
+      }
+      return ctor.SigilEffectiveLabel;
     }
 
     /**
@@ -228,8 +253,8 @@ export function Sigilify<B extends Constructor, L extends string>(
     getSigilLabelLineage(): readonly string[] {
       const ctor = getConstructor(this);
       if (!ctor) {
-        if (__DEV__)
-          throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
+        if (process.env.NODE_ENV !== 'production')
+          throw new Error(`[Sigil Error] Sigil class instance without constructor`);
         return ['@Sigil.unknown'];
       }
       return ctor.SigilLabelLineage;
@@ -243,8 +268,8 @@ export function Sigilify<B extends Constructor, L extends string>(
     getSigilLabelSet(): Readonly<Set<string>> {
       const ctor = getConstructor(this);
       if (!ctor) {
-        if (__DEV__)
-          throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
+        if (process.env.NODE_ENV !== 'production')
+          throw new Error(`[Sigil Error] Sigil class instance without constructor`);
         return new Set(['@Sigil.unknown']);
       }
       return ctor.SigilLabelSet;
@@ -252,7 +277,7 @@ export function Sigilify<B extends Constructor, L extends string>(
   }
 
   // Attach sigil metadata to constructor (registers label, sets labels, marks decorated)
-  decorateCtor(Sigilified, l, true);
+  decorateCtor(Sigilified, l, { isMixin: true });
 
   // Mark the returned constructor as sigil (runtime flag) and as a base.
   markSigil(Sigilified);
@@ -269,15 +294,15 @@ export function Sigilify<B extends Constructor, L extends string>(
  *                If not passed a random label is generated instead.
  * @param opts - Options object to override any global options if needed.
  * @returns A new abstract constructor that extends `Base` and includes Sigil statics/instance methods.
- * @throws Error if `Base` is already sigilized.
+ * @throws Error if `Base` is already sigilified.
  */
 export function SigilifyAbstract<B extends ConstructorAbstract, L extends string>(
   Base: B,
   label?: L,
   opts?: SigilOptions
 ) {
-  // if siglified throw
-  if (isSigilCtor(Base)) throw new Error(`[Sigil Error] 'Sigilify(${label})' already siglified.`);
+  // if sigilified throw
+  if (isSigilCtor(Base)) throw new Error(`[Sigil Error] 'Sigilify(${label})' already sigilified.`);
 
   // generate random label if not passed and verify it
   let l: string;
@@ -304,10 +329,18 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
     >;
 
     /**
-     * Class-level human-readable label constant for this sigil constructor.
+     * Class-level identity label constant for this sigil constructor.
      */
     static get SigilLabel(): string {
+      if (!isInheritanceChecked(this)) checkInheritance(this);
       return (this as any)[__LABEL__];
+    }
+
+    /**
+     * Class-level human-readable label constant for this sigil constructor, last passed label in 'Sigil' chain by developer.
+     */
+    static get SigilEffectiveLabel(): string {
+      return (this as any)[__EFFECTIVE_LABEL__];
     }
 
     /**
@@ -318,6 +351,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      * @returns An array of labels representing parent → child type labels.
      */
     static get SigilLabelLineage(): readonly string[] {
+      if (!isInheritanceChecked(this)) checkInheritance(this);
       return [...((this as any)[__LABEL_LINEAGE__] ?? [])];
     }
 
@@ -329,6 +363,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      * @returns A Readonly Set of labels that represent the type lineage.
      */
     static get SigilLabelSet(): Readonly<Set<string>> {
+      if (!isInheritanceChecked(this)) checkInheritance(this);
       const set: Set<string> = new Set();
       for (const s of (this as any)[__LABEL_SET__]) set.add(s);
       return set;
@@ -359,13 +394,13 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
       // Resolve constructor; defensive null-check helps catch weird runtime cases.
       const ctor = getConstructor(this);
       if (!ctor) {
-        if (__DEV__)
+        if (process.env.NODE_ENV !== 'production')
           throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
         return;
       }
 
-      // Perform dev-only inheritance validation to ensure labels are unique across the chain.
-      if (__DEV__) checkInheritance(ctor);
+      // Perform inheritance validation to ensure labels are unique across the chain.
+      checkInheritance(ctor);
     }
 
     /**
@@ -394,7 +429,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      * @returns `true` if `other` is an instance of this type or a subtype.
      */
     static isOfType<T>(this: T, other: unknown): other is GetInstance<T> {
-      if (!isSigilInstance(other) || !isSigilCtor(this)) return false;
+      if (!isSigilInstance(other)) return false;
       const otherSet = getConstructor(other)?.[__LABEL_SET__];
       const thisType = (this as any)[__LABEL__];
       return !!otherSet && otherSet.has(thisType);
@@ -413,7 +448,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      * @returns `true` if `other` has an identical lineage up to the length of this constructor's lineage.
      */
     static isOfTypeStrict<T>(this: T, other: unknown): other is GetInstance<T> {
-      if (!isSigilInstance(other) || !isSigilCtor(this)) return false;
+      if (!isSigilInstance(other)) return false;
       const otherLineage = getConstructor(other)?.[__LABEL_LINEAGE__];
       const thisLineage = (this as any)[__LABEL_LINEAGE__] as readonly string[];
       return !!otherLineage && thisLineage.every((s, i) => s === otherLineage[i]);
@@ -430,7 +465,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      * @returns `true` if `other` is the same instance of this type or a subtype.
      */
     isOfType<T>(this: T, other: unknown): other is GetInstance<T> {
-      if (!isSigilInstance(other) || !isSigilInstance(this)) return false;
+      if (!isSigilInstance(other)) return false;
       const otherSet = getConstructor(other)?.[__LABEL_SET__];
       const thisType = getConstructor(this)[__LABEL__];
       return !!otherSet && otherSet.has(thisType);
@@ -447,25 +482,40 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      * @returns `true` if `other` has an identical lineage up to the length of this instance's lineage.
      */
     isOfTypeStrict<T>(this: T, other: unknown): other is GetInstance<T> {
-      if (!isSigilInstance(other) || !isSigilInstance(this)) return false;
+      if (!isSigilInstance(other)) return false;
       const otherLineage = getConstructor(other)?.[__LABEL_LINEAGE__];
       const thisLineage = getConstructor(this)?.[__LABEL_LINEAGE__] as readonly string[];
       return !!otherLineage && thisLineage.every((s, i) => s === otherLineage[i]);
     }
 
     /**
-     * Returns the human-readable sigil label of this instance's constructor.
+     * Returns the identity sigil label of this instance's constructor.
      *
-     * @returns The label string (e.g. '@scope/pkg.ClassName') or '@Sigil.unknown' in DEV when constructor is missing.
+     * @returns The label string if passed (e.g. '@scope/pkg.ClassName'), random label if not passed (e.g. '@Sigil.auto-dq62ib6jnvmmlfbjhxh2937h') or '@Sigil.unknown' if constructor is missing.
      */
     getSigilLabel(): string {
       const ctor = getConstructor(this);
       if (!ctor) {
-        if (__DEV__)
-          throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
+        if (process.env.NODE_ENV !== 'production')
+          throw new Error(`[Sigil Error] Sigil class instance without constructor`);
         return '@Sigil.unknown';
       }
       return ctor.SigilLabel;
+    }
+
+    /**
+     * Returns the human-readable sigil label of this instance's constructor.
+     *
+     * @returns The last passed label string (e.g. '@scope/pkg.ClassName') or '@Sigil.unknown' if constructor is missing.
+     */
+    getSigilEffectiveLabel(): string {
+      const ctor = getConstructor(this);
+      if (!ctor) {
+        if (process.env.NODE_ENV !== 'production')
+          throw new Error(`[Sigil Error] Sigil class instance without constructor`);
+        return '@Sigil.unknown';
+      }
+      return ctor.SigilEffectiveLabel;
     }
 
     /**
@@ -476,8 +526,8 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
     getSigilLabelLineage(): readonly string[] {
       const ctor = getConstructor(this);
       if (!ctor) {
-        if (__DEV__)
-          throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
+        if (process.env.NODE_ENV !== 'production')
+          throw new Error(`[Sigil Error] Sigil class instance without constructor`);
         return ['@Sigil.unknown'];
       }
       return ctor.SigilLabelLineage;
@@ -491,8 +541,8 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
     getSigilLabelSet(): Readonly<Set<string>> {
       const ctor = getConstructor(this);
       if (!ctor) {
-        if (__DEV__)
-          throw new Error(`[Sigil Error] 'Sigilify(${label})' instance without constructor`);
+        if (process.env.NODE_ENV !== 'production')
+          throw new Error(`[Sigil Error] Sigil class instance without constructor`);
         return new Set(['@Sigil.unknown']);
       }
       return ctor.SigilLabelSet;
@@ -500,7 +550,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
   }
 
   // Attach sigil metadata to constructor (registers label, sets labels, marks decorated)
-  decorateCtor(Sigilified, l, true);
+  decorateCtor(Sigilified, l, { isMixin: true });
 
   // Mark the returned constructor as sigil (runtime flag) and as a base.
   markSigil(Sigilified);

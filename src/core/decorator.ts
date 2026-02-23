@@ -6,7 +6,6 @@ import {
   verifyLabel,
 } from './helpers';
 import type { SigilOptions } from './options';
-import { __DEV__ } from './constants';
 
 /**
  * Class decorator factory that attaches sigil statics to a class constructor.
@@ -14,7 +13,7 @@ import { __DEV__ } from './constants';
  * Notes:
  * - This decorator is intended to be applied to classes only. When used
  *   incorrectly (e.g. on a property), it is a no-op.
- * - Throws an error during class creation if the label validation fails.
+ * - Throws an error during class creation if the label validation fails (in development only).
  *
  * @typeParam L - Narrow string literal type for the provided label.
  * @param label - Optional sigil label to assign to the decorated class (e.g. `@scope/pkg.ClassName`).
@@ -39,7 +38,7 @@ export function WithSigil<L extends string>(label?: L, opts?: SigilOptions) {
       );
     // Attach sigil metadata to constructor (registers label, sets symbols, marks decorated)
     decorateCtor(value, l);
-    // Development-only inheritance checks and potential autofill
-    if (__DEV__) checkInheritance(value, opts);
+    // Inheritance checks and potential autofill
+    checkInheritance(value, opts);
   };
 }

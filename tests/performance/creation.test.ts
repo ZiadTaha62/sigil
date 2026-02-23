@@ -104,7 +104,7 @@ function createPlainExtendedChain(depth: number) {
   return Prev;
 }
 
-/** Create an extended sigilized class chain of given depth.
+/** Create an extended sigilified class chain of given depth.
  * Each stage adds 2 props and 1 method (cumulative).
  * Each created class is wrapped with withSigil.
  */

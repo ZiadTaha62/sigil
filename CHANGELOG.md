@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.1] - 2026-02-23
+
+### Added
+
+- `SigilEffectiveLabel`/`getSigilEffectiveLabel()` which are last passed label for logging purposes.
+
+### Changed
+
+- Patched multiple bugs.
+- Updated defualt options, now `SigilOptions.autofillLabels` is `true` by default.
+
 ## [2.1.0] - 2026-02-22
 
 ### Changed

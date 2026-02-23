@@ -7,7 +7,6 @@ import {
 } from './helpers';
 import type { SigilOptions } from './options';
 import type { TypedSigil } from './types';
-import { __DEV__ } from './constants';
 
 /**
  * HOF (class inhancer) that attaches runtime sigil metadata to Sigil class.
@@ -40,7 +39,7 @@ export function withSigil<S extends Function, L extends string = string>(
   // decorate and check inheritance.
   const ctor = Class;
   decorateCtor(ctor, l);
-  if (__DEV__) checkInheritance(ctor, opts);
+  checkInheritance(ctor, opts);
 
   return Class;
 }
@@ -76,7 +75,7 @@ export function withSigilTyped<S extends Function, L extends string = string>(
   // decorate and check inheritance.
   const ctor = Class;
   decorateCtor(ctor, l);
-  if (__DEV__) checkInheritance(ctor, opts);
+  checkInheritance(ctor, opts);
 
   return Class as unknown as TypedSigil<S, L>;
 }

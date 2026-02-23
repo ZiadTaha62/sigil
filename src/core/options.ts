@@ -53,7 +53,7 @@ export interface SigilOptions {
 export const OPTIONS: Required<SigilOptions> = {
   labelValidation: null,
   skipLabelInheritanceCheck: false,
-  autofillLabels: false,
+  autofillLabels: true,
 };
 
 /**
@@ -63,26 +63,23 @@ export const OPTIONS: Required<SigilOptions> = {
  * @param opts - Partial options to merge into the global `OPTIONS` object.
  */
 export const updateSigilOptions = (opts: SigilOptions): void => {
-  if (opts.autofillLabels) {
+  if ('autofillLabels' in opts) {
     if (typeof opts.autofillLabels !== 'boolean')
       throw new Error("'updateSigilOptions.autofillLabels' must be boolean");
-    OPTIONS.autofillLabels = opts.autofillLabels;
+    OPTIONS.autofillLabels = opts.autofillLabels!;
   }
-  if (opts.skipLabelInheritanceCheck) {
+
+  if ('skipLabelInheritanceCheck' in opts) {
     if (typeof opts.skipLabelInheritanceCheck !== 'boolean')
       throw new Error("'updateSigilOptions.skipLabelInheritanceCheck' must be boolean");
-    OPTIONS.skipLabelInheritanceCheck = opts.skipLabelInheritanceCheck;
+    OPTIONS.skipLabelInheritanceCheck = opts.skipLabelInheritanceCheck!;
   }
-  if (opts.labelValidation) {
-    if (
-      opts.labelValidation !== null &&
-      typeof opts.labelValidation !== 'function' &&
-      !(opts.labelValidation instanceof RegExp)
-    )
-      throw new Error(
-        "'updateSigilOptions.labelValidation' must be null, function or regex expression"
-      );
-    OPTIONS.labelValidation = opts.labelValidation;
+
+  if ('labelValidation' in opts) {
+    const val = opts.labelValidation;
+    if (val !== null && typeof val !== 'function' && !(val instanceof RegExp))
+      throw new Error("'updateSigilOptions.labelValidation' must be null, function or RegExp");
+    OPTIONS.labelValidation = val ?? null;
   }
 };
 

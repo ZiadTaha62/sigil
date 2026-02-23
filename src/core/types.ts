@@ -4,7 +4,7 @@
 
 /**
  * Static-side interface describing methods and properties added to a class
- * constructor when it is sigilized.
+ * constructor when it is sigilified.
  *
  * The properties and methods described here mirror the getters and static
  * predicates implemented by the `Sigilify` mixin.
@@ -22,8 +22,11 @@ export interface ISigilStatic<L extends string = string, P extends Function = ne
    */
   readonly __SIGIL_BRAND__: Prettify<{ [k in L]: true } & SigilBrandOf<P>>;
 
-  /** Class-level label constant (human readable). */
+  /** Class-level label constant (identity). */
   readonly SigilLabel: string;
+
+  /** Class-level label constant (human readable). */
+  readonly SigilEffectiveLabel: string;
 
   /**
    * Copy of the linearized sigil type label chain for the current constructor.
@@ -95,8 +98,10 @@ export interface ISigilInstance<L extends string = string, P extends Function = 
    *   distinct by label and allows propagation/merging of brand keys across inheritance.
    */
   readonly __SIGIL_BRAND__: Prettify<{ [k in L]: true } & SigilBrandOf<P>>;
-  /** Returns human-readable sigil label of the class constructor. */
+  /** Returns identity sigil label of the class constructor. */
   getSigilLabel(): string;
+  /** Returns human-readable sigil label of the class constructor. */
+  getSigilEffectiveLabel(): string;
   /** Returns copy of sigil type label lineage of the class constructor. */
   getSigilLabelLineage(): readonly string[];
   /** Returns copy of sigil type label set of the class constructor. */
