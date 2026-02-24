@@ -4,7 +4,7 @@
  * @internal
  * @constant {symbol}
  */
-export const __SIGIL__ = Symbol.for('@Sigil.__SIGIL__');
+export const __SIGIL__ = Symbol.for('@vicin/sigil.__SIGIL__');
 
 /**
  * Symbol to uniquely identify the base of sigil classes.
@@ -15,7 +15,7 @@ export const __SIGIL__ = Symbol.for('@Sigil.__SIGIL__');
  * @internal
  * @constant {symbol}
  */
-export const __SIGIL_BASE__ = Symbol.for('@Sigil.__SIGIL_BASE__');
+export const __SIGIL_BASE__ = Symbol.for('@vicin/sigil.__SIGIL_BASE__');
 
 /**
  * Symbol to mark constructors that were explicitly decorated with `WithSigil()`.
@@ -26,7 +26,7 @@ export const __SIGIL_BASE__ = Symbol.for('@Sigil.__SIGIL_BASE__');
  * @internal
  * @constant {symbol}
  */
-export const __DECORATED__ = Symbol.for('@Sigil.__DECORATED__');
+export const __DECORATED__ = Symbol.for('@vicin/sigil.__DECORATED__');
 
 /**
  * Symbol to mark that inheritance checks for a given constructor have been completed.
@@ -36,7 +36,7 @@ export const __DECORATED__ = Symbol.for('@Sigil.__DECORATED__');
  * @internal
  * @constant {symbol}
  */
-export const __INHERITANCE_CHECKED__ = Symbol.for('@Sigil.__INHERITANCE_CHECKED__');
+export const __INHERITANCE_CHECKED__ = Symbol.for('@vicin/sigil.__INHERITANCE_CHECKED__');
 
 /**
  * Symbol used to store the identity label for a sigil constructor.
@@ -46,7 +46,7 @@ export const __INHERITANCE_CHECKED__ = Symbol.for('@Sigil.__INHERITANCE_CHECKED_
  * @internal
  * @constant {symbol}
  */
-export const __LABEL__ = Symbol.for('@Sigil.__LABEL__');
+export const __LABEL__ = Symbol.for('@vicin/sigil.__LABEL__');
 
 /**
  * Symbol used to store the human-readable label for a sigil constructor, it can be inherited if no label is deined.
@@ -56,7 +56,7 @@ export const __LABEL__ = Symbol.for('@Sigil.__LABEL__');
  * @internal
  * @constant {symbol}
  */
-export const __EFFECTIVE_LABEL__ = Symbol.for('@Sigil.__EFFECTIVE_LABEL__');
+export const __EFFECTIVE_LABEL__ = Symbol.for('@vicin/sigil.__EFFECTIVE_LABEL__');
 
 /**
  * Symbol used to store the linearized label lineage for a sigil constructor.
@@ -66,7 +66,7 @@ export const __EFFECTIVE_LABEL__ = Symbol.for('@Sigil.__EFFECTIVE_LABEL__');
  * @internal
  * @constant {symbol}
  */
-export const __LABEL_LINEAGE__ = Symbol.for('@Sigil.__LABEL_LINEAGE__');
+export const __LABEL_LINEAGE__ = Symbol.for('@vicin/sigil.__LABEL_LINEAGE__');
 
 /**
  * Symbol used to store the set of labels for a sigil constructor.
@@ -76,4 +76,4 @@ export const __LABEL_LINEAGE__ = Symbol.for('@Sigil.__LABEL_LINEAGE__');
  * @internal
  * @constant {symbol}
  */
-export const __LABEL_SET__ = Symbol.for('@Sigil.__LABEL_SET__');
+export const __LABEL_SET__ = Symbol.for('@vicin/sigil.__LABEL_SET__');

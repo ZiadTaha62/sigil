@@ -7,7 +7,6 @@ import {
   isSigilCtor,
   isSigilInstance,
   updateSigilOptions,
-  withSigilTyped,
 } from '../../src';
 
 describe('Sigil core runtime behavior', () => {
@@ -90,10 +89,6 @@ describe('Sigil core runtime behavior', () => {
     expect(() => {
       withSigil(class X {}, 'X');
     }).toThrow("[Sigil Error] 'withSigil' HOF accept only Sigil classes");
-
-    expect(() => {
-      withSigilTyped(class X {}, 'X');
-    }).toThrow("[Sigil Error] 'withSigilTyped' HOF accept only Sigil classes");
   });
 
   test('Empty label autofill', () => {

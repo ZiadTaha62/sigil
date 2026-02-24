@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - 2026-02-24
+
+### Added
+
+- `sigil` symbol used for type-only nominal branding of classes
+
+### Changed
+
+- `__SIGIL_BRAND__` is classes replaced with `sigil` symbol
+
+### Removed
+
+- `withSigilTyped` is removed as library moved into manual branding
+
+### Breaking changes
+
+- `withSigilTyped` is removed as library moved into manual branding
+- `SigilBrandOf` is renamed to `SigilOf`
+- `UpdateSigilBrand` is renamed to `ExtendSigil`
+
 ## [2.2.1] - 2026-02-23
 
 ### Added

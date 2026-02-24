@@ -10,16 +10,10 @@ import {
   verifyLabel,
   isInheritanceChecked,
 } from './helpers';
-import { OPTIONS, type SigilOptions } from './options';
+import type { SigilOptions } from './options';
 import { __LABEL__, __EFFECTIVE_LABEL__, __LABEL_LINEAGE__, __LABEL_SET__ } from './symbols';
-import type {
-  Constructor,
-  ISigil,
-  Prettify,
-  GetInstance,
-  ConstructorAbstract,
-  ISigilInstance,
-} from './types';
+import type { Constructor, ISigil, Prettify, ConstructorAbstract, ISigilInstance } from './types';
+import { sigil } from './types';
 
 /**
  * Mixin factory that augments an existing class with Sigil runtime metadata and helpers.
@@ -49,24 +43,9 @@ export function Sigilify<B extends Constructor, L extends string>(
   // extend actual class
   class Sigilified extends Base implements ISigilInstance {
     /**
-     * Compile-time nominal brand that encodes the class label `L` plus parent's brand keys `BrandOf<P>`.
-     *
-     * - HAVE NO RUN-TIME VALUE (undefined)
-     * - Provides a *type-only* unique marker that makes instances nominally
-     *   distinct by label and allows propagation/merging of brand keys across inheritance.
-     */
-    declare static readonly __SIGIL_BRAND__: Prettify<
-      {
-        Sigil: true;
-      } & {
-        [K in L]: true;
-      }
-    >;
-
-    /**
      * Class-level identity label constant for this sigil constructor.
      */
-    static get SigilLabel(): string {
+    static get SigilLabel(): L {
       if (!isInheritanceChecked(this)) checkInheritance(this);
       return (this as any)[__LABEL__];
     }
@@ -74,7 +53,7 @@ export function Sigilify<B extends Constructor, L extends string>(
     /**
      * Class-level human-readable label constant for this sigil constructor, last passed label in 'Sigil' chain by developer.
      */
-    static get SigilEffectiveLabel(): string {
+    static get SigilEffectiveLabel(): L {
       return (this as any)[__EFFECTIVE_LABEL__];
     }
 
@@ -111,7 +90,7 @@ export function Sigilify<B extends Constructor, L extends string>(
      * - Provides a *type-only* unique marker that makes instances nominally
      *   distinct by label and allows propagation/merging of brand keys across inheritance.
      */
-    declare readonly __SIGIL_BRAND__: Prettify<
+    declare readonly [sigil]: Prettify<
       {
         Sigil: true;
       } & {
@@ -159,7 +138,7 @@ export function Sigilify<B extends Constructor, L extends string>(
      * @param other - The object to test.
      * @returns `true` if `other` is an instance of this type or a subtype.
      */
-    static isOfType<T>(this: T, other: unknown): other is GetInstance<T> {
+    static isOfType<T>(this: T, other: unknown): other is T {
       if (!isSigilInstance(other)) return false;
       const otherSet = getConstructor(other)?.[__LABEL_SET__];
       const thisType = (this as any)[__LABEL__];
@@ -174,7 +153,7 @@ export function Sigilify<B extends Constructor, L extends string>(
      * @param other - The object to test.
      * @returns `true` if `other` has an identical lineage up to the length of this constructor's lineage.
      */
-    static isOfTypeStrict<T>(this: T, other: unknown): other is GetInstance<T> {
+    static isOfTypeStrict<T>(this: T, other: unknown): other is T {
       if (!isSigilInstance(other)) return false;
       const otherLineage = getConstructor(other)?.[__LABEL_LINEAGE__];
       const thisLineage = (this as any)[__LABEL_LINEAGE__] as readonly string[];
@@ -191,7 +170,7 @@ export function Sigilify<B extends Constructor, L extends string>(
      * @param other - The object to test.
      * @returns `true` if `other` is the same instance of this type or a subtype.
      */
-    isOfType<T>(this: T, other: unknown): other is GetInstance<T> {
+    isOfType<T>(this: T, other: unknown): other is T {
       if (!isSigilInstance(other)) return false;
       const otherSet = getConstructor(other)?.[__LABEL_SET__];
       const thisType = getConstructor(this)[__LABEL__];
@@ -208,7 +187,7 @@ export function Sigilify<B extends Constructor, L extends string>(
      * @param other - The object to test.
      * @returns `true` if `other` has an identical lineage up to the length of this instance's lineage.
      */
-    isOfTypeStrict<T>(this: T, other: unknown): other is GetInstance<T> {
+    isOfTypeStrict<T>(this: T, other: unknown): other is T {
       if (!isSigilInstance(other)) return false;
       const otherLineage = getConstructor(other)?.[__LABEL_LINEAGE__];
       const thisLineage = getConstructor(this)?.[__LABEL_LINEAGE__] as readonly string[];
@@ -314,24 +293,9 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
   // extend actual class
   abstract class Sigilified extends Base implements ISigilInstance {
     /**
-     * Compile-time nominal brand that encodes the class label `L` plus parent's brand keys `BrandOf<P>`.
-     *
-     * - HAVE NO RUN-TIME VALUE (undefined)
-     * - Provides a *type-only* unique marker that makes instances nominally
-     *   distinct by label and allows propagation/merging of brand keys across inheritance.
-     */
-    declare static readonly __SIGIL_BRAND__: Prettify<
-      {
-        Sigil: true;
-      } & {
-        [K in L]: true;
-      }
-    >;
-
-    /**
      * Class-level identity label constant for this sigil constructor.
      */
-    static get SigilLabel(): string {
+    static get SigilLabel(): L {
       if (!isInheritanceChecked(this)) checkInheritance(this);
       return (this as any)[__LABEL__];
     }
@@ -339,7 +303,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
     /**
      * Class-level human-readable label constant for this sigil constructor, last passed label in 'Sigil' chain by developer.
      */
-    static get SigilEffectiveLabel(): string {
+    static get SigilEffectiveLabel(): L {
       return (this as any)[__EFFECTIVE_LABEL__];
     }
 
@@ -376,7 +340,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      * - Provides a *type-only* unique marker that makes instances nominally
      *   distinct by label and allows propagation/merging of brand keys across inheritance.
      */
-    declare readonly __SIGIL_BRAND__: Prettify<
+    declare readonly [sigil]: Prettify<
       {
         Sigil: true;
       } & {
@@ -428,7 +392,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      * @param other - The object to test.
      * @returns `true` if `other` is an instance of this type or a subtype.
      */
-    static isOfType<T>(this: T, other: unknown): other is GetInstance<T> {
+    static isOfType<T>(this: T, other: unknown): other is T {
       if (!isSigilInstance(other)) return false;
       const otherSet = getConstructor(other)?.[__LABEL_SET__];
       const thisType = (this as any)[__LABEL__];
@@ -447,7 +411,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      * @param other - The object to test.
      * @returns `true` if `other` has an identical lineage up to the length of this constructor's lineage.
      */
-    static isOfTypeStrict<T>(this: T, other: unknown): other is GetInstance<T> {
+    static isOfTypeStrict<T>(this: T, other: unknown): other is T {
       if (!isSigilInstance(other)) return false;
       const otherLineage = getConstructor(other)?.[__LABEL_LINEAGE__];
       const thisLineage = (this as any)[__LABEL_LINEAGE__] as readonly string[];
@@ -464,7 +428,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      * @param other - The object to test.
      * @returns `true` if `other` is the same instance of this type or a subtype.
      */
-    isOfType<T>(this: T, other: unknown): other is GetInstance<T> {
+    isOfType<T>(this: T, other: unknown): other is T {
       if (!isSigilInstance(other)) return false;
       const otherSet = getConstructor(other)?.[__LABEL_SET__];
       const thisType = getConstructor(this)[__LABEL__];
@@ -481,7 +445,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      * @param other - The object to test.
      * @returns `true` if `other` has an identical lineage up to the length of this instance's lineage.
      */
-    isOfTypeStrict<T>(this: T, other: unknown): other is GetInstance<T> {
+    isOfTypeStrict<T>(this: T, other: unknown): other is T {
       if (!isSigilInstance(other)) return false;
       const otherLineage = getConstructor(other)?.[__LABEL_LINEAGE__];
       const thisLineage = getConstructor(this)?.[__LABEL_LINEAGE__] as readonly string[];

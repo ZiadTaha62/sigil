@@ -9,7 +9,7 @@ import {
   __LABEL_LINEAGE__,
   __LABEL_SET__,
 } from './symbols';
-import type { ISigil, GetInstance } from './types';
+import type { ISigil, ISigilInstance } from './types';
 import { createId } from '@paralleldrive/cuid2';
 
 /** -----------------------------------------
@@ -295,7 +295,7 @@ export function isSigilCtor(ctor: unknown): ctor is ISigil {
  * @param inst - The instanca to test.
  * @returns `true` if `obj` is an instance produced by a sigil constructor.
  */
-export function isSigilInstance(inst: unknown): inst is GetInstance<ISigil> {
+export function isSigilInstance(inst: unknown): inst is ISigilInstance {
   if (!inst || typeof inst !== 'object') return false;
   const ctor = getConstructor(inst);
   return isSigilCtor(ctor);
@@ -317,7 +317,7 @@ export function isSigilBaseCtor(ctor: Function): ctor is ISigil {
  * @param inst - The instance to test.
  * @returns `true` if `inst` is an instance of a sigil base constructor.
  */
-export function isSigilBaseInstance(inst: unknown): inst is GetInstance<ISigil> {
+export function isSigilBaseInstance(inst: unknown): inst is ISigilInstance {
   if (!inst || typeof inst !== 'object') return false;
   const ctor = getConstructor(inst);
   return isSigilBaseCtor(ctor);

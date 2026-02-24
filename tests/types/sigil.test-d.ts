@@ -1,20 +1,20 @@
 import { expectAssignable } from 'tsd';
-import { type GetInstance, Sigil, withSigilTyped } from '../../src';
+import { Sigil, sigil, type ExtendSigil } from '../../src';
 
 // Class X extends Sigil
-class _X extends Sigil {}
-const X = withSigilTyped(_X, 'X');
-type X = GetInstance<typeof X>;
+class X extends Sigil {
+  declare [sigil]: ExtendSigil<'X', Sigil>;
+}
 
 // Class Y extends class X
-class _Y extends X {}
-const Y = withSigilTyped(_Y, 'Y');
-type Y = GetInstance<typeof Y>;
+class Y extends X {
+  declare [sigil]: ExtendSigil<'Y', X>;
+}
 
 // Class Z extends Sigil
-class _Z extends Sigil {}
-const Z = withSigilTyped(_Z, 'Z');
-type Z = GetInstance<typeof Z>;
+class Z extends Sigil {
+  declare [sigil]: ExtendSigil<'Z', Sigil>;
+}
 
 // 1. Y extends X (True)
 // Y should be assignable to X

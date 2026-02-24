@@ -1,8 +1,8 @@
 # Sigil
 
-[![npm version](https://img.shields.io/npm/v/@vicin/sigil.svg)](https://www.npmjs.com/package/@vicin/sigil) [![npm downloads](https://img.shields.io/npm/dm/@vicin/sigil.svg)](https://www.npmjs.com/package/@vicin/sigil) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![TypeScript](https://img.shields.io/badge/TypeScript-5.0%2B-blue) [![Build](https://github.com/ZiadTaha62/sigil/actions/workflows/ci.yml/badge.svg)](https://github.com/ZiadTaha62/sigil/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@vicin/sigil.svg)](https://www.npmjs.com/package/@vicin/sigil) [![npm downloads](https://img.shields.io/npm/dm/@vicin/sigil.svg)](https://www.npmjs.com/package/@vicin/sigil) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![TypeScript](https://img.shields.io/badge/TypeScript-5.0%2B-blue) [![Build](https://github.com/ZiadTaha62/sigil/actions/workflows/ci.yml/badge.svg)](https://github.com/ZiadTaha62/sigil/actions/workflows/ci.yml) ![bundle size](https://img.shields.io/bundlephobia/minzip/@vicin/sigil)
 
-> - 🎉 v2.0.0 is out! Happy coding! 😄💻
+> - 🎉 v3.0.0 is out! Happy coding! 😄💻
 > - 📄 **Changelog:** [CHANGELOG.md](./CHANGELOG.md)
 
 `Sigil` replaces `instanceof` across bundles, enforces nominal class identity, and makes inheritance-aware runtime type checks reliable in large TypeScript systems. It organizes class identities across your codebase and gives you the power of **nominal typing** and **safe cross-bundle class checks** where each class constructor is stored under a unique label.
@@ -15,14 +15,17 @@
 
 ## Important Notes Before Using
 
-- **Explicit class identity:** `Sigil` uses passed class label to identify classes, which means that dev is responsible for uniqueness of classes by passing unique labels.
-- **Performance:** Minimal overhead, but `.isOfType()` is slightly slower than native `instanceof`. Avoid in ultra-hot paths.
-- **Private Constructors:** HOF pattern allows extending private constructors in types (TypeScript limitation).
+- **Explicit class identity:** `Sigil` uses passed class label to identify classes, which means that the developer is responsible for uniqueness of classes by passing unique labels.
+- **Performance:** Minimal overhead, `.isOfType()` is slightly slower than native `instanceof`. Avoid in ultra-hot paths.
 - **Simple instanceof Fix:** If you just need runtime checks without extras, see the [minimal mode](#minimal-mode).
 
-## Why Registry is dropped
+## Features
 
-In v2 we simplified the architecture to remove global registries and reduce complexity across packages.
+- ✅ **Drop-in `instanceof` replacement** that works across bundles, HMR, and monorepos
+- ✅ **True nominal typing** with zero runtime cost
+- ✅ **Inheritance-aware** checks (`isOfType` knows about subclasses)
+- ✅ Four flexible usage patterns: `extends Sigil`, mixin, decorator, HOF
+- ✅ Full TypeScript 5.0+ support + excellent JSDoc
 
 ---
 
@@ -33,24 +36,16 @@ In v2 we simplified the architecture to remove global registries and reduce comp
   - [Basic usage](#basic-usage)
   - [Decorator pattern](#decorator-pattern)
   - [HOF pattern](#hof-higher-order-function-pattern)
-  - [Minimal “first-run” example](#minimal-first-run-example)
   - [Migration](#migration)
-- [Limitations & guarantees](#limitations--guarantees)
-  - [What Sigil guarantees](#what-sigil-guarantees)
-  - [What Sigil does not guarantee](#what-sigil-does-not-guarantee)
 - [Core concepts](#core-concepts)
   - [Terminology](#terminology)
   - [Purpose and Origins](#purpose-and-origins)
   - [Implementation Mechanics](#implementation-mechanics)
-- [Nominal typing patterns](#nominal-typing-patterns)
-  - [HOF pattern](#1-hof-pattern-_classclass)
-  - [Decorator pattern](#2-decorator-pattern)
+  - [Inheritance example](#inheritance-example)
 - [API reference](#api-reference)
 - [Options & configuration](#options--configuration)
 - [Minimal mode](#minimal-mode)
 - [Strict mode](#strict-mode)
-- [## Which pattern should I use?](#which-pattern-should-i-use)
-- [Troubleshooting & FAQ](#troubleshooting--faq)
 - [Contributing](#contributing)
 - [License](#license)
 - [Author](#author)
@@ -92,10 +87,8 @@ If your class is marked with `abstract`:
 ```ts
 import { Sigil, SigilifyAbstract } from '@vicin/sigil';
 
-// Using the pre-sigilified base class:
 abstract class User extends Sigil {}
 
-// Or use Sigilify when you want an ad-hoc class:
 const MyClass = SigilifyAbstract(abstract class {}, '@myorg/mypkg.MyClass');
 ```
 
@@ -118,7 +111,7 @@ class User extends Sigil {}
 
 ##### HOF (Higher-Order Function) pattern
 
-Apply a label using HOF as `withSigil` or `withSigilTyped`:
+Apply a label using `withSigil` HOF:
 
 ```ts
 import { Sigil, withSigil } from '@vicin/sigil';
@@ -128,26 +121,6 @@ const User = withSigil(_User, '@myorg/mypkg.User');
 
 const user = new User();
 console.log(User.SigilLabel); // "@myorg/mypkg.User"
-```
-
-> Note: When extending an already sigilified class (for example `Sigil`), you must decorate the subclass or use the HOF helpers in DEV mode unless you configured the library otherwise.
-
-### Minimal “first-run” example
-
-```ts
-import { Sigil, withSigil } from '@vicin/sigil';
-
-class _User extends Sigil {
-  constructor(public name: string) {
-    super();
-  }
-}
-export const User = withSigil(_User, '@myorg/mypkg.User');
-
-const u = new User('alice');
-
-console.log(User.SigilLabel); // "@myorg/mypkg.User"
-console.log(User.isOfType(u)); // true
 ```
 
 ### Migration
@@ -174,33 +147,15 @@ Congratulations — you’ve opted into `Sigil` and you can start replacing `ins
 
 ---
 
-## Limitations & guarantees
-
-This section states clearly what `Sigil` provides and what it does **not** provide.
-
-### What Sigil guarantees
-
-**1. Reliable runtime identity (when used as intended).**
-
-**2. Nominal typing that is inheritance-aware**
-
-### What Sigil does not guarantee
-
-**1. Doesn't work across isolated realms (e.g., iframes, workers) without custom bridging.**
-
-**2. Not for security/access control — constructors can be discoverable.**
-
----
-
 ## Core concepts
 
 ### Terminology
 
 - **Label**: An identity (string) such as `@scope/pkg.ClassName`, but can be random string (e.g. `@Sigil.auto-dq62ib6jnvmmlfbjhxh2937h`) if no label passed.
-- **EffictiveLabel:** A human-readable (string) such as `@scope/pkg.ClassName`, if no label is passed it inherit the last defined label.
+- **EffectiveLabel:** A human-readable (string) such as `@scope/pkg.ClassName`, if no label is passed it inherit the last defined label.
 - **Label lineage**: Array of labels for ancestry.
 - **Label set**: Set of labels for fast checks.
-- **Brand**: TypeScript marker (`__SIGIL_BRAND__`) for nominal types.
+- **[sigil]**: TypeScript symbol marker for nominal types.
 
 ---
 
@@ -218,141 +173,74 @@ if (obj instanceof User) { ... }
 if (User.isOfType(obj)) { ... } // This still works even if User was bundled twice.
 ```
 
-- **Manual Branding Overhead:** Custom identifiers lead to boilerplate and maintenance issues.
+- **Manual Branding Overhead:** Custom identifiers lead to boilerplate and maintenance issues, `Sigil` add reliable inheritance-aware nominal branding with just one line of code.
+
+```ts
+import { sigil } from '@vicin/sigil';
+
+class User extends Sigil {
+  declare [sigil]: ExtendSigil<'User', Sigil>; // <-- Update nominal brand with this line
+}
+
+type test1 = User extends Sigil ? true : false; // true
+type test2 = Sigil extends User ? true : false; // false
+```
 
 `Sigil` abstracts these into a **centralized system**, making identity management **explicit** and **error-resistant** if defined the right way.
 
 ### Implementation Mechanics
 
 - **Runtime Contract:** Established via extending `Sigil` or using `Sigilify` mixin.
-- **Update metadata:** With each new child, HOF or decorators are used to attach metadata and update nominal type.
-- **Accessors & Type guards:** Classes expose `SigilLabel`; instances provide `getSigilLabel()` for querying unique identifier label. also when typed it hold nominal identity used to prevent subtle bugs.
+- **Update metadata:** With each new child, use decorators or HOF to attach run-time metadata and `ExtendSigil` to update nominal type.
 
 ```ts
-import { Sigil, withSigilTyped, GetInstance } from '@vicin/sigil';
+import { Sigil, WithSigil, sigil, ExtendSigil } from '@vicin/sigil';
 
-// Runtime contract
-class _MyClass extends Sigil {}
-
-// Update metadata (append new label)
-const MyClass = withSigilTyped(_MyClass, '@scope/package.MyClass');
-type MyClass = GetInstance<typeof MyClass>;
-
-// Accessors & Type guards
-console.log(MyClass.SigilLabel); // '@scope/package.MyClass'
-console.log(new MyClass().getSigilLabel()); // '@scope/package.MyClass'
-console.log(MyClass.isOfType(new MyClass())); // true
-function x(c: MyClass) {} // Only instances of 'MyClass' can be passed
-```
-
----
-
-## Nominal typing patterns
-
-In this part we will discuss conventions to avoid any type errors and have nominal typing with just extra few definition lines.
-We have two patterns, **HOF pattern (`_Class`/`Class`)** and **Decorator pattern**:
-
-### 1. HOF pattern (`_Class`/`Class`)
-
-Define implementation in an untyped class, then wrap for typing:
-
-```ts
-import { Sigil, withSigilTyped, GetInstance } from '@vicin/sigil';
-
-class _X extends Sigil {
-  // Class logic here
-}
-export const X = withSigilTyped(_X, 'Label.X');
-export type X = GetInstance<typeof X>;
-```
-
-#### `InstanceType<>` vs `GetInstance<>`
-
-You should depend on `GetInstance` to get type of instance and avoid using `InstanceType` as it returns `any` if the class constructor is `protected` or `private`.
-
-```ts
-export type X = GetInstance<typeof X>; // <-- works with 'private' and 'protected' constructors as well
-```
-
-Internally `GetInstance` is just `T extends { prototype: infer R }`.
-
-#### Generic propagation
-
-```ts
-class _X<G> extends Sigil {}
-export const X = withSigilTyped(_X, 'Label.X');
-export type X<G> = GetInstance<typeof X<G>>; // <-- Redeclare generics here
-
-class _Y<G> extends X<G> {} // and so on...
-```
-
-#### Anonymous classes
-
-You may see error: `Property 'x' of exported anonymous class type may not be private or protected.`, although this is rare to occur.
-This comes from the fact that all typed classes are `anonymous class` as they are return of HOF. to avoid these error entirely all you need is exporting the untyped classes even if they are un-used as a good convention.
-
-```ts
-export class _X extends Sigil {} // <-- Just add 'export' here
-export const X = withSigilTyped(_X, 'Label.X');
-export type X = GetInstance<typeof X>;
-```
-
-#### Private constructors
-
-The only limitation in HOF approach is **extending private constructors**:
-
-```ts
-import { Sigil, withSigilTyped, GetInstance } from '@vicin/sigil';
-class _X extends Sigil {
-  private constructor() {}
-}
-const X = withSigilTyped(_X, 'X');
-type X = GetInstance<typeof X>;
-
-class _Y extends X {} // <-- This is allowed!
-const Y = withSigilTyped(_Y, 'Y');
-type Y = GetInstance<typeof Y>;
-
-const y = new Y(); // <-- Type here is any
-```
-
-This is a known TypeScript limitation.
-
----
-
-### 2. Decorator pattern
-
-Inject brand directly in class body:
-
-```ts
-import { Sigil, WithSigil, UpdateSigilBrand } from '@vicin/sigil';
-
-@WithSigil('X')
-class X extends Sigil {
-  declare __SIGIL_BRAND__: UpdateSigilBrand<'X', Sigil>;
-}
-
-@WithSigil('Y')
-class Y extends X {
-  declare __SIGIL_BRAND__: UpdateSigilBrand<'Y', X>;
+@WithSigil('@scope/package.MyClass') // <-- Run-time values update
+class MyClass extends Sigil {
+  declare [sigil]: ExtendSigil<'@scope/package.MyClass', Sigil>; // <-- compile-time type update
 }
 ```
 
-No `_Class`/`Class` pattern, no `private constructor` issue, no type hacks and only one extra line, but our branding logic now lives in class body.
-
-#### Label Consistency
-
-Use typeof label for compile-time matching:
+You can avoid decorators and use HOF but they are slightly more verbose:
 
 ```ts
-import { Sigil, WithSigil, UpdateSigilBrand } from '@vicin/sigil';
+import { Sigil, withSigil, sigil, ExtendSigil } from '@vicin/sigil';
 
-const label = 'X';
-
-@WithSigil(label)
-class X extends Sigil {
-  declare __SIGIL_BRAND__: UpdateSigilBrand<typeof label, Sigil>;
+class _MyClass extends Sigil {
+  declare [sigil]: ExtendSigil<'@scope/package.MyClass', Sigil>;
 }
+
+const MyClass = withSigil(_MyClass, '@scope/package.MyClass');
+type MyClass = InstanceType<typeof MyClass>;
+```
+
+Note that you can't use `InstanceType` on `private` or `protected` classes.
+
+### Inheritance example
+
+```ts
+import { Sigil, WithSigil } from '@vicin/sigil';
+
+@WithSigil('@myorg/User')
+class User extends Sigil {
+  declare [sigil]: ExtendSigil<'@myorg/User', Sigil>;
+}
+
+@WithSigil('@myorg/Admin')
+class Admin extends User {
+  declare [sigil]: ExtendSigil<'@myorg/Admin', User>;
+}
+
+const admin = new Admin();
+const user = new User();
+
+console.log(Admin.isOfType(admin)); // true
+console.log(Admin.isOfType(user)); // false
+console.log(User.isOfType(admin)); // true
+
+type test1 = Admin extends User ? true : false; // true
+type test2 = User extends Admin ? true : false; // false
 ```
 
 ---
@@ -374,7 +262,6 @@ class X extends Sigil {
 
 - **HOFs:**
   - `withSigil(Class, label?, opts?)`
-  - `withSigilTyped(Class, label?, opts?)`
 
 - **Helpers:**
   - `isSigilCtor(ctor)`
@@ -392,20 +279,17 @@ class X extends Sigil {
   - `ISigil<Label, ParentSigil?>`
   - `ISigilStatic<Label, ParentSigil?>`
   - `ISigilInstance<Label, ParentSigil?>`
-  - `SigilBrandOf<T>`
-  - `TypedSigil<SigilClass, Label>`
-  - `GetInstance<T>`
-  - `UpdateSigilBrand<Label, Base>`
+  - `SigilOf<T>`
+  - `ExtendSigil<Label, Parent>`
   - `SigilOptions`
 
 ### Key helpers (runtime)
 
 - `Sigil`: a minimal sigilified base class you can extend from.
 - `SigilError`: an `Error` class decorated with a `Sigil` so it can be identified at runtime.
-- `WithSigil(label)`: class decorator that attaches `Sigil` metadata at declaration time.
 - `Sigilify(Base, label?, opts?)`: mixin function that returns a new constructor with `Sigil` types and instance helpers.
+- `WithSigil(label)`: class decorator that attaches `Sigil` metadata at declaration time.
 - `withSigil(Class, label?, opts?)`: HOF that validates and decorates an existing class constructor.
-- `withSigilTyped(Class, label?, opts?)`: like `withSigil` but narrows the TypeScript type to include brands.
 - `isSigilCtor(value)`: `true` if `value` is a `Sigil` constructor.
 - `isSigilInstance(value)`: `true` if `value` is an instance of a `Sigil` constructor.
 - `updateSigilOptions(opts)`: change global runtime options before `Sigil` decoration (e.g., `autofillLabels`).
@@ -467,7 +351,7 @@ class C extends B {}
 
 ## Strict mode
 
-If you want to inforce passing a label to every class defined in your codebase, you can set `autofillLabels` to `false` at the start of app:
+If you want to enforce passing a label to every class defined in your codebase, you can set `autofillLabels` to `false` at the start of app:
 
 ```ts
 import { updateSigilOptions } from '@vicin/sigil';
@@ -476,23 +360,6 @@ updateSigilOptions({ autofillLabels: false });
 ```
 
 Now if you forgot to pass a label error is thrown.
-
----
-
-## Which pattern should I use?
-
-- Want simplest setup? → Extend `Sigil`
-- Want full nominal typing? → Use HOF pattern
-- Want clean class bodies? → Use HOF
-- Want fewer wrapper exports? → Use Decorators
-
----
-
-## Troubleshooting & FAQ
-
-- **Dev Extension Errors:** Add labels or enable autofillLabels.
-- **Anonymous Class Errors:** Export untyped bases.
-- **Selective Labeling:** Use `autofillLabels: true` or empty `@WithSigil()` for auto-generation.
 
 ---
 
