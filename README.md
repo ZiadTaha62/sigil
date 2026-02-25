@@ -20,12 +20,10 @@
 
 ## Features
 
-- ✅ **Drop-in `instanceof` replacement** that works across bundles, HMR, and monorepos
+- ✅ **Drop-in `instanceof` replacement** that works across bundles, HMR, and monorepos, Also can check for **exact class instance**
 - ✅ **True nominal typing** with zero runtime cost
-- ✅ **Inheritance-aware** checks (`isOfType` knows about subclasses)
 - ✅ **Tiny less than 1.5 KB minified and brotlied** measured using size-limit
-- ✅ **Performant as native instanceof** but with guaranteed checks! Also can check for **exact class instance**
-- ✅ Full TypeScript 5.0+ support + excellent JSDoc
+- ✅ **Performant as native instanceof** but with guaranteed checks
 
 ---
 
