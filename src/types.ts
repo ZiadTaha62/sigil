@@ -30,13 +30,13 @@ export interface ISigilStatic<L extends string = string> {
 
   /**
    * Copy of the linearized sigil type label chain for the current constructor.
-   * Useful for debugging and strict lineage comparisons.
+   * Useful for debugging.
    */
   readonly SigilLabelLineage: readonly string[];
 
   /**
-   * Copy of the sigil type label set for the current constructor. Useful for
-   * O(1) membership checks and debugging.
+   * Copy of the sigil type label set for the current constructor.
+   * Useful for debugging.
    */
   readonly SigilLabelSet: Readonly<Set<string>>;
 
@@ -48,14 +48,13 @@ export interface ISigilStatic<L extends string = string> {
    * `isSigilInstance`.
    *
    * @param obj - Value to test.
-   * @returns Type guard narrowing `obj` to `ISigil`.
+   * @returns Type guard narrowing `obj` to `ISigilInstance`.
    */
-  isSigilified(obj: unknown): obj is ISigil;
+  isSigilified(obj: unknown): obj is ISigilInstance;
 
   /**
-   * Check whether `other` is (or inherits from) the type represented by the
-   * calling constructor. Uses the other instance's `SigilLabelSet` to check
-   * membership. Works in O(1) and is reliable as long as `OPTIONS.skipLabelInheritanceCheck` is `false`.
+   * Check whether `other` is (or inherits from) the instance represented by the
+   * calling constructor.
    *
    * This replaces `instanceof` so that checks remain valid across bundles/realms
    * and when subclassing.
@@ -65,21 +64,18 @@ export interface ISigilStatic<L extends string = string> {
    * @param other - The object to test.
    * @returns A type guard asserting `other` is an instance of the constructor.
    */
-  isOfType<T extends ISigilStatic>(this: T, other: unknown): other is T;
+  isOfType<T extends ISigilStatic>(this: T, other: unknown): other is GetInstance<T>;
 
   /**
-   * Strict lineage comparison: verifies that the calling constructor's type
-   * lineage (by label) matches the `other`'s lineage element-by-element.
-   *
-   * Works in O(n) where `n` is the lineage length and is useful when order
-   * and exact ancestry must be confirmed. reliable when `OPTIONS.skipLabelInheritanceCheck` is `false`.
+   * Check whether `other` is exactly the same instance represented by the
+   * calling constructor.
    *
    * @typeParam T - The specific sigil constructor (`this`).
-   * @param this - The constructor performing the strict check.
+   * @param this - The constructor performing the type check.
    * @param other - The object to test.
-   * @returns A type guard asserting `other` is an instance whose lineage matches exactly.
+   * @returns A type guard asserting `other` is an instance of the constructor.
    */
-  isOfTypeStrict<T extends ISigilStatic>(this: T, other: unknown): other is T;
+  isExactType<T extends ISigilStatic>(this: T, other: unknown): other is GetInstance<T>;
 }
 
 /**
@@ -97,7 +93,7 @@ export interface ISigilInstance<L extends string = string, P extends Function = 
    * - Provides a *type-only* unique marker that makes instances nominally
    *   distinct by label and allows propagation/merging of brand keys across inheritance.
    */
-  readonly [sigil]: Prettify<IfNever<SigilOf<P>, {}> & { [k in L]: true }>;
+  readonly [sigil]: Prettify<{ Sigil: true } & IfNever<SigilOf<P>, {}> & { [k in L]: true }>;
   /** Returns identity sigil label of the class constructor. */
   getSigilLabel(): string;
   /** Returns human-readable sigil label of the class constructor. */
@@ -107,9 +103,8 @@ export interface ISigilInstance<L extends string = string, P extends Function = 
   /** Returns copy of sigil type label set of the class constructor. */
   getSigilLabelSet(): Readonly<Set<string>>;
   /**
-   * Check whether `other` is (or inherits from) the type represented by the
-   * calling constructor. Uses the other instance's `SigilLabelSet` to check
-   * membership. Works in O(1) and is reliable as long as `OPTIONS.skipLabelInheritanceCheck` is `false`.
+   * Check whether `other` is (or inherits from) the instance represented by the
+   * calling constructor.
    *
    * This replaces `instanceof` so that checks remain valid across bundles/realms
    * and when subclassing.
@@ -120,19 +115,17 @@ export interface ISigilInstance<L extends string = string, P extends Function = 
    * @returns A type guard asserting `other` is an instance of the constructor.
    */
   isOfType<T extends ISigilInstance>(this: T, other: unknown): other is T;
+
   /**
-   * Strict lineage comparison: verifies that the calling constructor's type
-   * lineage (by label) matches the `other`'s lineage element-by-element.
-   *
-   * Works in O(n) where `n` is the lineage length and is useful when order
-   * and exact ancestry must be confirmed. reliable when `OPTIONS.skipLabelInheritanceCheck` is `false`.
+   * Check whether `other` is exactly the same instance represented by the
+   * calling constructor.
    *
    * @typeParam T - The specific sigil constructor (`this`).
-   * @param this - The constructor performing the strict check.
+   * @param this - The constructor performing the type check.
    * @param other - The object to test.
-   * @returns A type guard asserting `other` is an instance whose lineage matches exactly.
+   * @returns A type guard asserting `other` is an instance of the constructor.
    */
-  isOfTypeStrict<T extends ISigilInstance>(this: T, other: unknown): other is T;
+  isExactType<T extends ISigilInstance>(this: T, other: unknown): other is T;
 }
 
 /**
@@ -192,3 +185,5 @@ export type Prettify<T> = { [K in keyof T]: T[K] } & {};
 
 /** Helper type to replace 'never' with another type */
 type IfNever<T, R = {}> = [T] extends [never] ? R : T;
+
+export type GetInstance<T> = T extends { prototype: infer P } ? P : never;

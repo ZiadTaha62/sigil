@@ -1,5 +1,6 @@
 import { Sigilify } from './mixin';
 import { sigil } from './types';
+
 /**
  * A minimal root Sigil class used by the library as a base identity.
  *

@@ -26,7 +26,8 @@
     "test:performance:instanceof": "jest --detectOpenHandles tests/performance/instanceof.test.ts",
     "test:types": "tsd",
     "prepublishOnly": "npm run build && npm run test:unit && npm run test:types",
-    "size": "npm run build && size-limit"
+    "size": "npm run build && size-limit",
+    "bench": "npm install && npm run test:performance"
   },
   "files": [
     "dist",
@@ -77,13 +78,10 @@
     "tsup": "^8.5.1",
     "typescript": "^5.9.3"
   },
-  "dependencies": {
-    "@paralleldrive/cuid2": "^3.3.0"
-  },
   "size-limit": [
     {
       "path": "dist/index.mjs",
-      "limit": "12 KB"
+      "limit": "1.5 KB"
     }
   ]
 }

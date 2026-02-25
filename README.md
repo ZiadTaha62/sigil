@@ -16,7 +16,6 @@
 ## Important Notes Before Using
 
 - **Explicit class identity:** `Sigil` uses passed class label to identify classes, which means that the developer is responsible for uniqueness of classes by passing unique labels.
-- **Performance:** Minimal overhead, `.isOfType()` is slightly slower than native `instanceof`. Avoid in ultra-hot paths.
 - **Simple instanceof Fix:** If you just need runtime checks without extras, see the [minimal mode](#minimal-mode).
 
 ## Features
@@ -24,7 +23,8 @@
 - ✅ **Drop-in `instanceof` replacement** that works across bundles, HMR, and monorepos
 - ✅ **True nominal typing** with zero runtime cost
 - ✅ **Inheritance-aware** checks (`isOfType` knows about subclasses)
-- ✅ Four flexible usage patterns: `extends Sigil`, mixin, decorator, HOF
+- ✅ **Tiny less than 1.5 KB minified and brotlied** measured using size-limit
+- ✅ **Performant as native instanceof** but with guaranteed checks! Also can check for **exact class instance**
 - ✅ Full TypeScript 5.0+ support + excellent JSDoc
 
 ---
@@ -46,6 +46,7 @@
 - [Options & configuration](#options--configuration)
 - [Minimal mode](#minimal-mode)
 - [Strict mode](#strict-mode)
+- [Benchmarks](#benchmarks)
 - [Contributing](#contributing)
 - [License](#license)
 - [Author](#author)
@@ -171,6 +172,7 @@ if (obj instanceof User) { ... }
 
 // With Sigil
 if (User.isOfType(obj)) { ... } // This still works even if User was bundled twice.
+if (User.isExactType(obj)) { ... } // Or check for exactly same constructor not its children
 ```
 
 - **Manual Branding Overhead:** Custom identifiers lead to boilerplate and maintenance issues, `Sigil` add reliable inheritance-aware nominal branding with just one line of code.
@@ -235,9 +237,17 @@ class Admin extends User {
 const admin = new Admin();
 const user = new User();
 
+// Instanceof like behavior
 console.log(Admin.isOfType(admin)); // true
 console.log(Admin.isOfType(user)); // false
 console.log(User.isOfType(admin)); // true
+console.log(User.isOfType(user)); // true
+
+// Exact checks
+console.log(Admin.isOfType(admin)); // true
+console.log(Admin.isOfType(user)); // false
+console.log(User.isOfType(user)); // true
+console.log(User.isOfType(admin)); // false (Admin is child indeed but this checks for user specifically)
 
 type test1 = Admin extends User ? true : false; // true
 type test2 = User extends Admin ? true : false; // false
@@ -301,11 +311,11 @@ When a constructor is decorated/sigilified it will expose the following **static
 
 - `SigilLabel` — the identity label string.
 - `SigilEffectiveLabel` — the human label string.
-- `SigilLabelLineage` — readonly array of labels representing parent → child.
-- `SigilLabelSet` — readonly `Set<string>` for O(1) checks.
+- `SigilLabelLineage` — readonly array of labels representing parent → child for debugging.
+- `SigilLabelSet` — readonly `Set<string>` for debugging.
 - `isSigilified(obj)` — runtime predicate that delegates to `isSigilInstance`.
-- `isOfType(other)` — O(1) membership test using `other`'s `__LABEL_SET__`.
-- `isOfTypeStrict(other)` — strict lineage comparison element-by-element.
+- `isOfType(other)` — check if other is an instance of this constructor or its children.
+- `isExactType(other) `— check if other is an instance exactly this constructor.
 
 Instances of sigilified classes expose instance helpers:
 
@@ -313,8 +323,8 @@ Instances of sigilified classes expose instance helpers:
 - `getSigilEffectiveLabel()` — returns the human label.
 - `getSigilLabelLineage()` — returns lineage array.
 - `getSigilLabelSet()` — returns readonly Set.
-- `isOfType(other)` — O(1) membership test using `other`'s `__LABEL_SET__`.
-- `isOfTypeStrict(other)` — strict lineage comparison element-by-element.
+- `isOfType(other)` — check if other is an instance of the same class or its children as this.
+- `isExactType(other) `— check if other is an instance exactly the same constructor.
 
 ---
 
@@ -360,6 +370,52 @@ updateSigilOptions({ autofillLabels: false });
 ```
 
 Now if you forgot to pass a label error is thrown.
+
+---
+
+## Benchmarks
+
+Sigil is built for **real-world performance**. Below are the latest micro-benchmark results (run on **Node.js v20.12.0**).
+To run benchmarks on your machine fetch source code from [github](https://github.com/ZiadTaha62/sigil) and run `npm run bench` in your console.
+
+### 1. Runtime Type Checking
+
+| Depth | `instanceof` (per op) | `isOfType` (ctor) | `isOfType` (instance) | `isExactType` (ctor) | `isExactType` (instance) |
+| ----- | --------------------- | ----------------- | --------------------- | -------------------- | ------------------------ |
+| 0     | 0.000010 ms           | 0.000025 ms       | **0.000010 ms**       | 0.000027 ms          | 0.000012 ms              |
+| 3     | 0.000032 ms           | 0.000045 ms       | **0.000027 ms**       | 0.000038 ms          | **0.000025 ms**          |
+| 5     | 0.000034 ms           | 0.000046 ms       | **0.000028 ms**       | 0.000037 ms          | **0.000026 ms**          |
+| 10    | 0.000044 ms           | 0.000045 ms       | **0.000029 ms**       | 0.000038 ms          | **0.000027 ms**          |
+| 15    | 0.000058 ms           | 0.000063 ms       | **0.000051 ms**       | 0.000069 ms          | **0.000053 ms**          |
+
+> **Key takeaway**:  
+> `isOfType` has **practically the same performance as native `instanceof`**, slightly **slower** on static calls and slightly **faster** on the instance side.
+> `isExactType` adds only a tiny negligible cost and remains extremely fast even on deep hierarchies.
+
+### 2. Class Definition & Instance Creation
+
+| Scenario                        | Definition (per class) | Instantiation (per instance) |
+| ------------------------------- | ---------------------- | ---------------------------- |
+| Empty plain class               | 0.0122 ms              | 0.00019 ms                   |
+| Empty Sigil class               | 0.0672 ms              | 0.00059 ms                   |
+| Small (5 props + 3 methods)     | 0.0172 ms              | 0.00327 ms                   |
+| Large (15 props + 10 methods)   | 0.0212 ms              | 0.00922 ms                   |
+| Large Sigil                     | 0.0780 ms              | 0.01177 ms                   |
+| Extended chain depth 5 – plain  | 0.0897 ms              | 0.01809 ms                   |
+| Extended chain depth 5 – Sigil  | 0.3978 ms              | 0.02020 ms                   |
+| Extended chain depth 10 – plain | 0.2042 ms              | 0.05759 ms                   |
+| Extended chain depth 10 – Sigil | 0.8127 ms              | 0.06675 ms                   |
+
+> **Key takeaways**:
+>
+> - Class definition is a **one-time cost** at module load time. Even at depth 10 the cost stays well under 1 ms per class.
+> - Instance creation adds a small fixed overhead of ~0.4–0.6 µs per object, which becomes completely negligible as your classes grow in size and complexity.
+
+### Bundle Size
+
+**less than 1.5 KB** (minified + Brotli, including all dependencies)
+
+This makes Sigil one of the smallest full-featured solutions for nominal typing + reliable runtime identity.
 
 ---
 

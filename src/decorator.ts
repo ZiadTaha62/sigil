@@ -1,10 +1,4 @@
-import {
-  checkInheritance,
-  decorateCtor,
-  generateRandomLabel,
-  isSigilCtor,
-  verifyLabel,
-} from './helpers';
+import { handleSigil, hasOwnSigil, isSigilCtor } from './helpers';
 import type { SigilOptions } from './options';
 
 /**
@@ -22,13 +16,6 @@ import type { SigilOptions } from './options';
  * @returns A class decorator compatible with the ECMAScript decorator context.
  */
 export function WithSigil<L extends string>(label?: L, opts?: SigilOptions) {
-  // generate random label if not passed and verify it
-  let l: string;
-  if (label) {
-    verifyLabel(label, opts);
-    l = label;
-  } else l = generateRandomLabel();
-
   return function (value: Function, context: any) {
     // Only apply to class declarations
     if (context.kind !== 'class') return;
@@ -36,9 +23,11 @@ export function WithSigil<L extends string>(label?: L, opts?: SigilOptions) {
       throw new Error(
         `[Sigil Error] 'WithSigil' decorator accept only Sigil classes but used on class ${value.name}`
       );
-    // Attach sigil metadata to constructor (registers label, sets symbols, marks decorated)
-    decorateCtor(value, l);
-    // Inheritance checks and potential autofill
-    checkInheritance(value, opts);
+    if (hasOwnSigil(value))
+      throw new Error(
+        `[Sigil Error] Class '${value.name}' with label '${value.SigilLabel}' is already sigilified`
+      );
+
+    handleSigil(value, label, opts);
   };
 }

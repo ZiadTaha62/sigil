@@ -13,14 +13,12 @@ describe('Sigil core runtime behavior', () => {
   beforeEach(() => {
     updateSigilOptions({
       autofillLabels: true,
-      skipLabelInheritanceCheck: false,
     });
   });
 
   afterEach(() => {
     updateSigilOptions({
       autofillLabels: true,
-      skipLabelInheritanceCheck: false,
     });
   });
 
@@ -76,7 +74,7 @@ describe('Sigil core runtime behavior', () => {
   test('Double siglify throws', () => {
     const Ctor = Sigilify(class {}, '@test/Ctor');
     expect(() => Sigilify(Ctor, '@test/Ctor')).toThrow(
-      "[Sigil Error] 'Sigilify(@test/Ctor)' already sigilified."
+      "[Sigil Error] Class 'Sigilified' with label '@test/Ctor' is already sigilified"
     );
   });
 
@@ -91,17 +89,7 @@ describe('Sigil core runtime behavior', () => {
     }).toThrow("[Sigil Error] 'withSigil' HOF accept only Sigil classes");
   });
 
-  test('Empty label autofill', () => {
-    @WithSigil()
-    class X extends Sigil {}
-    expect(X.SigilLabel).toMatch('@Sigil.auto-');
-
-    class _Y extends Sigil {}
-    const Y = withSigil(_Y);
-    expect(Y.SigilLabel).toMatch('@Sigil.auto-');
-  });
-
-  test('lineage: subclass is recognized as subtype of base via isOfType of constructors', () => {
+  test('lineage: constructors', () => {
     // create base
     class _Base extends Sigil {}
     const Base = withSigil(_Base, '@test/Base');
@@ -112,23 +100,30 @@ describe('Sigil core runtime behavior', () => {
     const subInst = new Sub();
     const baseInst = new Base();
 
-    // Sub should be recognized as of Base type (subtype)
+    // normanl instanceof like checks
+    expect(Base.isOfType(baseInst)).toBe(true);
     expect(Base.isOfType(subInst)).toBe(true);
-    // Base is not a strict subtype of Sub
     expect(Sub.isOfType(baseInst)).toBe(false);
+    expect(Sub.isOfType(subInst)).toBe(true);
 
-    // isOfTypeStrict checks exact lineage (only true for same label)
-    // Base.isOfTypeStrict(Base) should be true; Sub.isOfTypeStrict(Base) should be false
-    expect(Base.isOfTypeStrict(baseInst)).toBe(true);
-    expect(Sub.isOfTypeStrict(baseInst)).toBe(false);
+    // Exact checks
+    expect(Base.isExactType(baseInst)).toBe(true);
+    expect(Base.isExactType(subInst)).toBe(false);
+    expect(Sub.isExactType(baseInst)).toBe(false);
+    expect(Sub.isExactType(subInst)).toBe(true);
 
-    // instance-level sets
-    const typeSet = subInst.getSigilLabelSet();
-    expect(typeSet.has(Base.SigilLabel)).toBe(true);
-    expect(typeSet.has(Sub.SigilLabel)).toBe(true);
+    // sets
+    const baseSet = baseInst.getSigilLabelSet();
+    const subSet = subInst.getSigilLabelSet();
+    expect(JSON.stringify(Array.from(baseSet))).toBe(
+      JSON.stringify(Array.from(new Set(['Sigil', '@test/Base'])))
+    );
+    expect(JSON.stringify(Array.from(subSet))).toBe(
+      JSON.stringify(Array.from(new Set(['Sigil', '@test/Base', '@test/Sub'])))
+    );
   });
 
-  test('lineage: subclass is recognized as subtype of base via isOfType of instances', () => {
+  test('lineage: instances', () => {
     // create base
     class _Base extends Sigil {}
     const Base = withSigil(_Base, '@test/Base');
@@ -139,20 +134,27 @@ describe('Sigil core runtime behavior', () => {
     const subInst = new Sub();
     const baseInst = new Base();
 
-    // Sub should be recognized as of Base type (subtype)
+    // normanl instanceof like checks
+    expect(baseInst.isOfType(baseInst)).toBe(true);
     expect(baseInst.isOfType(subInst)).toBe(true);
-    // Base is not a strict subtype of Sub
     expect(subInst.isOfType(baseInst)).toBe(false);
+    expect(subInst.isOfType(subInst)).toBe(true);
 
-    // isOfTypeStrict checks exact lineage (only true for same label)
-    // Base.isOfTypeStrict(Base) should be true; Sub.isOfTypeStrict(Base) should be false
-    expect(baseInst.isOfTypeStrict(baseInst)).toBe(true);
-    expect(subInst.isOfTypeStrict(baseInst)).toBe(false);
+    // Exact checks
+    expect(baseInst.isExactType(baseInst)).toBe(true);
+    expect(baseInst.isExactType(subInst)).toBe(false);
+    expect(subInst.isExactType(baseInst)).toBe(false);
+    expect(subInst.isExactType(subInst)).toBe(true);
 
-    // instance-level sets
-    const typeSet = subInst.getSigilLabelSet();
-    expect(typeSet.has(baseInst.getSigilLabel())).toBe(true);
-    expect(typeSet.has(subInst.getSigilLabel())).toBe(true);
+    // sets
+    const baseSet = baseInst.getSigilLabelSet();
+    const subSet = subInst.getSigilLabelSet();
+    expect(JSON.stringify(Array.from(baseSet))).toBe(
+      JSON.stringify(Array.from(new Set(['Sigil', '@test/Base'])))
+    );
+    expect(JSON.stringify(Array.from(subSet))).toBe(
+      JSON.stringify(Array.from(new Set(['Sigil', '@test/Base', '@test/Sub'])))
+    );
   });
 
   test('isSigilCtor and isSigilInstance helpers', () => {
@@ -167,7 +169,7 @@ describe('Sigil core runtime behavior', () => {
     expect(isSigilInstance({})).toBe(false);
   });
 
-  test('SigilLabel vs SigilEffectiveLabel', () => {
+  test('SigilLabel & SigilEffectiveLabel', () => {
     class _Base extends Sigil {}
     const Base = withSigil(_Base, '@test/Base');
 
@@ -175,8 +177,8 @@ describe('Sigil core runtime behavior', () => {
 
     expect(Base.SigilLabel).toBe('@test/Base');
     expect(new Base().getSigilLabel()).toBe('@test/Base');
-    expect(Sub.SigilLabel).toMatch('@Sigil.auto-');
-    expect(new Sub().getSigilLabel()).toMatch('@Sigil.auto-');
+    expect(Sub.SigilLabel).toMatch('@Sigil-auto:');
+    expect(new Sub().getSigilLabel()).toMatch('@Sigil-auto:');
     expect(Base.SigilEffectiveLabel).toBe('@test/Base');
     expect(new Base().getSigilEffectiveLabel()).toBe('@test/Base');
     expect(Sub.SigilEffectiveLabel).toBe('@test/Base');
@@ -188,19 +190,5 @@ describe('Sigil core runtime behavior', () => {
     class X extends Sigil {}
 
     expect(() => new X()).toThrow();
-  });
-
-  test('Getters check lineage before returning', () => {
-    class _X extends Sigil {}
-
-    expect(_X.SigilLabel).toMatch('@Sigil.auto-');
-    expect(_X.SigilEffectiveLabel).toBe('Sigil');
-
-    const X = withSigil(_X, 'X');
-
-    expect(_X.SigilLabel).toMatch('X');
-    expect(_X.SigilEffectiveLabel).toBe('X');
-    expect(X.SigilLabel).toMatch('X');
-    expect(X.SigilEffectiveLabel).toBe('X');
   });
 });

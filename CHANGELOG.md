@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.0] - 2026-02-25
+
+### Removed
+
+- `SigilOptions.skipLabelInheritanceCheck` is removed.
+- `isOfTypeStrict` is removed.
+
 ## [3.0.0] - 2026-02-24
 
 ### Added

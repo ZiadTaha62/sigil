@@ -1,10 +1,4 @@
-import {
-  checkInheritance,
-  decorateCtor,
-  generateRandomLabel,
-  isSigilCtor,
-  verifyLabel,
-} from './helpers';
+import { handleSigil, isSigilCtor, hasOwnSigil } from './helpers';
 import type { SigilOptions } from './options';
 
 /**
@@ -27,18 +21,11 @@ export function withSigil<S extends Function, L extends string = string>(
     throw new Error(
       `[Sigil Error] 'withSigil' HOF accept only Sigil classes  but used on class ${Class?.name ?? 'unknown'}`
     );
+  if (hasOwnSigil(Class))
+    throw new Error(
+      `[Sigil Error] Class '${Class.name}' with label '${Class.SigilLabel}' is already sigilified`
+    );
 
-  // generate random label if not passed and verify it
-  let l: string;
-  if (label) {
-    verifyLabel(label, opts);
-    l = label;
-  } else l = generateRandomLabel();
-
-  // decorate and check inheritance.
-  const ctor = Class;
-  decorateCtor(ctor, l);
-  checkInheritance(ctor, opts);
-
+  handleSigil(Class, label, opts);
   return Class;
 }

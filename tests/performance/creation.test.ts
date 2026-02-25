@@ -328,40 +328,33 @@ describe('Performance: class creation comparisons (Sigil vs Plain)', () => {
 });
 
 //
-// These are the typical run values with 'DEF_ITERATIONS = 2000' and 'INST_ITERATIONS = 10000':
+// These are the typical run values with 'DEF_ITERATIONS = 2000' and 'INST_ITERATIONS = 10000' on 'node v20.12.0':
 //
-//  ┌─────────┬───────────────────────────────────────────────────────────────────┬──────────────┬───────────────┬───────────────┬────────────────┐
-//  │ (index) │ scenario                                                          │ def total ms │ def per op ms │ inst total ms │ inst per op ms │
-//  ├─────────┼───────────────────────────────────────────────────────────────────┼──────────────┼───────────────┼───────────────┼────────────────┤
-//  │ 0       │ 'Empty plain class'                                               │ '20.135'     │ '0.010068'    │ '2.751'       │ '0.000275'     │
-//  │ 1       │ 'Empty Sigil class'                                               │ '135.929'    │ '0.067964'    │ '45.221'      │ '0.004522'     │
-//  │ 2       │ 'Small plain class (5 props, 3 methods)'                          │ '42.013'     │ '0.021006'    │ '34.077'      │ '0.003408'     │
-//  │ 3       │ 'Small Sigil class (5 props, 3 methods)'                          │ '151.920'    │ '0.075960'    │ '86.124'      │ '0.008612'     │
-//  │ 4       │ 'Large plain class (15 props, 10 methods)'                        │ '46.874'     │ '0.023437'    │ '102.673'     │ '0.010267'     │
-//  │ 5       │ 'Large Sigil class (15 props, 10 methods)'                        │ '145.211'    │ '0.072605'    │ '152.859'     │ '0.015286'     │
-//  │ 6       │ 'Extended plain depth '3' with 2 props and 1 method every extend  │ '111.334'    │ '0.055667'    │ '95.372'      │ '0.009537'     │
-//  │ 7       │ 'Extended Sigil depth '3' with 2 props and 1 method every extend  │ '444.727'    │ '0.222363'    │ '130.634'     │ '0.013063'     │
-//  │ 8       │ 'Extended plain depth '5' with 2 props and 1 method every extend  │ '182.255'    │ '0.091128'    │ '192.631'     │ '0.019263'     │
-//  │ 9       │ 'Extended Sigil depth '5' with 2 props and 1 method every extend  │ '662.548'    │ '0.331274'    │ '231.658'     │ '0.023166'     │
-//  │ 10      │ 'Extended plain depth '10' with 2 props and 1 method every extend │ '435.620'    │ '0.217810'    │ '575.814'     │ '0.057581'     │
-//  │ 11      │ 'Extended Sigil depth '10' with 2 props and 1 method every extend │ '1275.526'   │ '0.637763'    │ '656.204'     │ '0.065620'     │
-//  └─────────┴───────────────────────────────────────────────────────────────────┴──────────────┴───────────────┴───────────────┴────────────────┘
+//  ┌─────────┬────────────────────────────────────────────────────────────────────┬──────────────┬───────────────┬───────────────┬────────────────┐
+//  │ (index) │ scenario                                                           │ def total ms │ def per op ms │ inst total ms │ inst per op ms │
+//  ├─────────┼────────────────────────────────────────────────────────────────────┼──────────────┼───────────────┼───────────────┼────────────────┤
+//  │ 0       │ 'Empty plain class'                                                │ '20.997'     │ '0.010499'    │ '1.990'       │ '0.000199'     │
+//  │ 1       │ 'Empty Sigil class'                                                │ '137.299'    │ '0.068649'    │ '30.439'      │ '0.003044'     │
+//  │ 2       │ 'Small plain class (5 props, 3 methods)'                           │ '41.411'     │ '0.020706'    │ '33.022'      │ '0.003302'     │
+//  │ 3       │ 'Small Sigil class (5 props, 3 methods)'                           │ '144.699'    │ '0.072349'    │ '72.384'      │ '0.007238'     │
+//  │ 4       │ 'Large plain class (15 props, 10 methods)'                         │ '44.717'     │ '0.022358'    │ '91.712'      │ '0.009171'     │
+//  │ 5       │ 'Large Sigil class (15 props, 10 methods)'                         │ '156.978'    │ '0.078489'    │ '141.178'     │ '0.014118'     │
+//  │ 6       │ "Extended plain depth '3' with 2 props and 1 method every extend"  │ '109.147'    │ '0.054574'    │ '88.216'      │ '0.008822'     │
+//  │ 7       │ "Extended Sigil depth '3' with 2 props and 1 method every extend"  │ '477.195'    │ '0.238598'    │ '134.108'     │ '0.013411'     │
+//  │ 8       │ "Extended plain depth '5' with 2 props and 1 method every extend"  │ '195.991'    │ '0.097995'    │ '203.162'     │ '0.020316'     │
+//  │ 9       │ "Extended Sigil depth '5' with 2 props and 1 method every extend"  │ '825.003'    │ '0.412501'    │ '260.257'     │ '0.026026'     │
+//  │ 10      │ "Extended plain depth '10' with 2 props and 1 method every extend" │ '406.002'    │ '0.203001'    │ '581.994'     │ '0.058199'     │
+//  │ 11      │ "Extended Sigil depth '10' with 2 props and 1 method every extend" │ '1538.582'   │ '0.769291'    │ '660.908'     │ '0.066091'     │
+//  └─────────┴────────────────────────────────────────────────────────────────────┴──────────────┴───────────────┴───────────────┴────────────────┘
 //
 // From this is we can conclude:
 //
-//  1. Class declaration of sigil starts at minimal '0.067964 ms' for each class and increases with 'extends' depth mainly: '0.067964 -> 0.222363 -> 0.331274 -> 0637763'.
-//     This is predictable as with each 'extends' new 'Set' and 'Map' are defined with increasing length, however this is one-time cost only for each class so
-//     it have practically zore actual run-time overhead.
+//  1. Class declaration of sigil starts at minimal '0.068649 ms' for each class and increases with 'extends' depth mainly: '0.072349' -> '0.078489'
+//     -> '0.238598' -> '0.412501' -> '0.769291'.
+//     This is predictable as with each 'extends' multiple Object.defineProperty and new 'Set' is defined with increasing length are defined,
+//     however this is one-time cost only for each class so it have practically zore actual run-time overhead.
 //
-//  2. Class instance creation of sigil have fixed per instance overhead of about '0.005 ms'. this is due to creation of 'Sigil' instance methods as 'asOfType()'
-//     'getSigilLabel()' etc... . this overhead bloats small classes but as class is populated the overhead is reduced, however in most real-life classes with real
-//     properties and methods with logic, this overhead becomes negligable, especially in 'DDD' or large systems where other operations 'I/O', 'API calls' etc...
-//     dominate.
+//  2. Class instance creation of sigil have fixed per instance overhead of about '0.005 ms'. this is due to creation of 'Sigil' instance methods
+//     as 'asOfType()' 'getSigilLabel()' etc... . this overhead bloats small classes but as class is populated the overhead percentage is reduced.
 //
-
-//
-// Bottom line:
-// Sigil adds a measurable one-time cost at class definition and a very small per-instance cost.
-// - For typical apps (few class definitions, many instances with real work), that one-time cost is acceptable.
-// - For hot-path code that constructs lots of instances of extremely small objects at very high rate (millions/sec), you may want to measure/optimize further or use type-only techniques.
 //

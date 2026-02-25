@@ -1,11 +1,12 @@
 /**
- * Performance test: compare `instanceof` vs Sigil's `isOfType` and `isOfTypeStrict`.
+ * Performance test: compare `instanceof` vs Sigil's `isOfType` and `isExactType`.
  *
  * Scenarios:
  *   - depth 0 (simple class)
  *   - depth 3
  *   - depth 5
  *   - depth 10
+ *   - depth 15
  *
  * Notes:
  *  - This measures micro-op throughput; runs with dev checks off to approximate production.
@@ -21,16 +22,14 @@ type Row = {
   scenario: string;
   'instanceof total ms': number;
   'instanceof per-op ms': number;
-  'sigil instanceof total ms': number;
-  'sigil instanceof per-op ms': number;
   'isOfType ctor total ms': number;
   'isOfType ctor per-op ms': number;
-  'isOfTypeStrict ctor total ms': number;
-  'isOfTypeStrict ctor per-op ms': number;
+  'isExactType ctor total ms': number;
+  'isExactType ctor per-op ms': number;
   'isOfType instance total ms': number;
   'isOfType instance per-op ms': number;
-  'isOfTypeStrict instance total ms': number;
-  'isOfTypeStrict instance per-op ms': number;
+  'isExactType instance total ms': number;
+  'isExactType instance per-op ms': number;
 };
 
 function nowNs(): bigint {
@@ -100,7 +99,7 @@ function benchCheck(fn: () => void, iterations: number): number {
   return hrToMs(end - start);
 }
 
-describe('Perf: instanceof vs isOfType vs isOfTypeStrict', () => {
+describe('Perf: instanceof vs isOfType vs isExactType', () => {
   beforeAll(() => {
     updateSigilOptions({ autofillLabels: true });
   });
@@ -112,7 +111,7 @@ describe('Perf: instanceof vs isOfType vs isOfTypeStrict', () => {
   test('identity checks across depths (logged results)', async () => {
     const rows: Row[] = [];
 
-    const depths = [0, 3, 5, 10];
+    const depths = [0, 3, 5, 10, 15];
 
     for (const depth of depths) {
       // === Plain chain ===
@@ -127,41 +126,28 @@ describe('Perf: instanceof vs isOfType vs isOfTypeStrict', () => {
       // === Sigil chain ctor ===
       const sig = buildSigilChain(depth);
 
-      // 3 checks for sigil:
-      // 1) instanceof (still works in same realm)
-      const sigInstanceOfFn = () => {
-        sig.instance instanceof sig.BaseCtor;
-      };
-
-      // 2) isOfType
       const isOfTypeCtorFn = () => {
         sig.BaseCtor.isOfType(sig.instance);
       };
-
-      // 3) isOfTypeStrict
-      const isOfTypeStrictCtorFn = () => {
-        sig.BaseCtor.isOfTypeStrict(sig.instance);
+      const isExactTypeCtorFn = () => {
+        sig.BaseCtor.isExactType(sig.instance);
       };
 
-      const sigInstanceOfMs = benchCheck(sigInstanceOfFn, CHECK_ITERATIONS);
       const isOfTypeCtorMs = benchCheck(isOfTypeCtorFn, CHECK_ITERATIONS);
-      const isOfTypeStricCortMs = benchCheck(isOfTypeStrictCtorFn, CHECK_ITERATIONS);
+      const isExactTypeCtorMs = benchCheck(isExactTypeCtorFn, CHECK_ITERATIONS);
 
       // === Sigil chain instance ===
       const sigInst = new sig.BaseCtor();
 
-      // 2) isOfType
       const isOfTypeInstFn = () => {
         sigInst.isOfType(sig.instance);
       };
-
-      // 3) isOfTypeStrict
-      const isOfTypeInstCtorFn = () => {
-        sigInst.isOfTypeStrict(sig.instance);
+      const isExactTypeInstFn = () => {
+        sigInst.isExactType(sig.instance);
       };
 
       const isOfTypeInstMs = benchCheck(isOfTypeInstFn, CHECK_ITERATIONS);
-      const isOfTypeStricInstMs = benchCheck(isOfTypeInstCtorFn, CHECK_ITERATIONS);
+      const isExactTypeInstMs = benchCheck(isExactTypeInstFn, CHECK_ITERATIONS);
 
       // Push results
 
@@ -169,28 +155,24 @@ describe('Perf: instanceof vs isOfType vs isOfTypeStrict', () => {
         scenario: `depth ${depth}`,
         'instanceof total ms': plainInstanceOfMs,
         'instanceof per-op ms': plainInstanceOfMs / CHECK_ITERATIONS,
-        'sigil instanceof total ms': sigInstanceOfMs,
-        'sigil instanceof per-op ms': sigInstanceOfMs / CHECK_ITERATIONS,
         'isOfType ctor total ms': isOfTypeCtorMs,
         'isOfType ctor per-op ms': isOfTypeCtorMs / CHECK_ITERATIONS,
-        'isOfTypeStrict ctor total ms': isOfTypeStricCortMs,
-        'isOfTypeStrict ctor per-op ms': isOfTypeStricCortMs / CHECK_ITERATIONS,
         'isOfType instance total ms': isOfTypeInstMs,
         'isOfType instance per-op ms': isOfTypeInstMs / CHECK_ITERATIONS,
-        'isOfTypeStrict instance total ms': isOfTypeStricInstMs,
-        'isOfTypeStrict instance per-op ms': isOfTypeStricInstMs / CHECK_ITERATIONS,
+        'isExactType ctor total ms': isExactTypeCtorMs,
+        'isExactType ctor per-op ms': isExactTypeCtorMs / CHECK_ITERATIONS,
+        'isExactType instance total ms': isExactTypeInstMs,
+        'isExactType instance per-op ms': isExactTypeInstMs / CHECK_ITERATIONS,
       });
     }
 
     // Print results in a friendly table
-    console.log('\n=== instanceof vs Sigil.isOfType / isOfTypeStrict ===');
+    console.log('\n=== instanceof vs Sigil.isOfType / isExactType ===');
     console.table(
       rows.map((r) => ({
         scenario: r.scenario,
         'instanceof total ms': r['instanceof total ms'].toFixed(3),
         'instanceof per-op ms': r['instanceof per-op ms'].toFixed(6),
-        'sigil instanceof total ms': r['sigil instanceof total ms'].toFixed(3),
-        'sigil instanceof per-op ms': r['sigil instanceof per-op ms'].toFixed(6),
       }))
     );
     console.table(
@@ -198,17 +180,17 @@ describe('Perf: instanceof vs isOfType vs isOfTypeStrict', () => {
         scenario: r.scenario,
         'isOfType ctor total ms': r['isOfType ctor total ms'].toFixed(3),
         'isOfType ctor per-op ms': r['isOfType ctor per-op ms'].toFixed(6),
-        'isOfTypeStrict ctor total ms': r['isOfTypeStrict ctor total ms'].toFixed(3),
-        'isOfTypeStrict ctor per-op ms': r['isOfTypeStrict ctor per-op ms'].toFixed(6),
+        'isOfType instance total ms': r['isOfType instance total ms'].toFixed(3),
+        'isOfType instance per-op ms': r['isOfType instance per-op ms'].toFixed(6),
       }))
     );
     console.table(
       rows.map((r) => ({
         scenario: r.scenario,
-        'isOfType instance total ms': r['isOfType instance total ms'].toFixed(3),
-        'isOfType instance per-op ms': r['isOfType instance per-op ms'].toFixed(6),
-        'isOfTypeStrict instance total ms': r['isOfTypeStrict instance total ms'].toFixed(3),
-        'isOfTypeStrict instance per-op ms': r['isOfTypeStrict instance per-op ms'].toFixed(6),
+        'isExactType ctor total ms': r['isExactType ctor total ms'].toFixed(3),
+        'isExactType ctor per-op ms': r['isExactType ctor per-op ms'].toFixed(6),
+        'isExactType instance total ms': r['isExactType instance total ms'].toFixed(3),
+        'isExactType instance per-op ms': r['isExactType instance per-op ms'].toFixed(6),
       }))
     );
 
@@ -218,28 +200,49 @@ describe('Perf: instanceof vs isOfType vs isOfTypeStrict', () => {
 });
 
 //
-// These are the typical run values with 'CHECK_ITERATIONS = 200_000':
+// These are the typical run values with 'CHECK_ITERATIONS = 200_000' on 'node v20.12.0':
 //
-//  ┌─────────┬────────────┬─────────────────────┬──────────────────────┬───────────────────────────┬────────────────────────────┐
-//  │ (index) │ scenario   │ instanceof total ms │ instanceof per-op ms │ sigil instanceof total ms │ sigil instanceof per-op ms │
-//  ├─────────┼────────────┼─────────────────────┼──────────────────────┼───────────────────────────┼────────────────────────────┤
-//  │ 0       │ 'depth 0'  │ '2.292'             │ '0.000011'           │ '3.856'                   │ '0.000019'                 │
-//  │ 1       │ 'depth 3'  │ '7.091'             │ '0.000035'           │ '11.634'                  │ '0.000058'                 │
-//  │ 2       │ 'depth 5'  │ '7.290'             │ '0.000036'           │ '12.031'                  │ '0.000060'                 │
-//  │ 3       │ 'depth 10' │ '9.179'             │ '0.000046'           │ '13.091'                  │ '0.000065'                 │
-//  └─────────┴────────────┴─────────────────────┴──────────────────────┴───────────────────────────┴────────────────────────────┘
-//  ┌─────────┬────────────┬───────────────────┬────────────────────┬─────────────────────────┬──────────────────────────┐
-//  │ (index) │ scenario   │ isOfType ctor total ms │ isOfType ctor per-op ms │ isOfTypeStrict ctor total ms │ isOfTypeStrict ctor per-op ms │
-//  ├─────────┼────────────┼───────────────────┼────────────────────┼─────────────────────────┼──────────────────────────┤
-//  │ 0       │ 'depth 0'  │ '4.570'           │ '0.000023'         │ '5.059'                 │ '0.000025'               │
-//  │ 1       │ 'depth 3'  │ '8.342'           │ '0.000042'         │ '9.765'                 │ '0.000049'               │
-//  │ 2       │ 'depth 5'  │ '9.731'           │ '0.000049'         │ '11.292'                │ '0.000056'               │
-//  │ 3       │ 'depth 10' │ '9.859'           │ '0.000049'         │ '11.328'                │ '0.000057'               │
-//  └─────────┴────────────┴───────────────────┴────────────────────┴─────────────────────────┴──────────────────────────┘
+// instanceof
+//  ┌─────────┬────────────┬─────────────────────┬──────────────────────┐
+//  │ (index) │ scenario   │ instanceof total ms │ instanceof per-op ms │
+//  ├─────────┼────────────┼─────────────────────┼──────────────────────┤
+//  │ 0       │ 'depth 0'  │ '1.933'             │ '0.000010'           │
+//  │ 1       │ 'depth 3'  │ '6.433'             │ '0.000032'           │
+//  │ 2       │ 'depth 5'  │ '6.702'             │ '0.000034'           │
+//  │ 3       │ 'depth 10' │ '8.823'             │ '0.000044'           │
+//  │ 4       │ 'depth 15' │ '11.634'            │ '0.000058'           │
+//  └─────────┴────────────┴─────────────────────┴──────────────────────┘
 //
-// From this is we can conclude:
+// isOfType
+//  ┌─────────┬────────────┬────────────────────────┬─────────────────────────┬────────────────────────────┬─────────────────────────────┐
+//  │ (index) │ scenario   │ isOfType ctor total ms │ isOfType ctor per-op ms │ isOfType instance total ms │ isOfType instance per-op ms │
+//  ├─────────┼────────────┼────────────────────────┼─────────────────────────┼────────────────────────────┼─────────────────────────────┤
+//  │ 0       │ 'depth 0'  │ '5.096'                │ '0.000025'              │ '2.009'                    │ '0.000010'                  │
+//  │ 1       │ 'depth 3'  │ '8.905'                │ '0.000045'              │ '5.428'                    │ '0.000027'                  │
+//  │ 2       │ 'depth 5'  │ '9.165'                │ '0.000046'              │ '5.661'                    │ '0.000028'                  │
+//  │ 3       │ 'depth 10' │ '9.027'                │ '0.000045'              │ '5.801'                    │ '0.000029'                  │
+//  │ 4       │ 'depth 15' │ '12.520'               │ '0.000063'              │ '10.231'                   │ '0.000051'                  │
+//  └─────────┴────────────┴────────────────────────┴─────────────────────────┴────────────────────────────┴─────────────────────────────┘
 //
-//  1. 'instanceof' being native is more performant than 'isOfType' and 'isOfTypeStrict'.
-//  2. As the depth increases the percentage difference between 'instanceof' and 'isOfType'/'isOfTypeStrict' decreases.
-//  3. The change is about '0.00001 ms' in most cases, making it practically negligible.
+// isExactType (strict lineage check)
+//  ┌─────────┬────────────┬───────────────────────────┬────────────────────────────┬───────────────────────────────┬────────────────────────────────┐
+//  │ (index) │ scenario   │ isExactType ctor total ms │ isExactType ctor per-op ms │ isExactType instance total ms │ isExactType instance per-op ms │
+//  ├─────────┼────────────┼───────────────────────────┼────────────────────────────┼───────────────────────────────┼────────────────────────────────┤
+//  │ 0       │ 'depth 0'  │ '5.402'                   │ '0.000027'                 │ '2.373'                       │ '0.000012'                     │
+//  │ 1       │ 'depth 3'  │ '7.513'                   │ '0.000038'                 │ '3.619'                       │ '0.000018'                     │
+//  │ 2       │ 'depth 5'  │ '7.406'                   │ '0.000037'                 │ '3.725'                       │ '0.000019'                     │
+//  │ 3       │ 'depth 10' │ '7.658'                   │ '0.000038'                 │ '4.221'                       │ '0.000021'                     │
+//  │ 4       │ 'depth 15' │ '13.887'                  │ '0.000069'                 │ '10.688'                      │ '0.000053'                     │
+//  └─────────┴────────────┴───────────────────────────┴────────────────────────────┴───────────────────────────────┴────────────────────────────────┘
+//
+// Conclusions (latest results with consistent implementation):
+//
+// • isOfType has practically the almost the same performance as native instanceof.
+//    slightly **slower** on static calls and is often slightly **faster** on the instance side.
+//
+// • isExactType adds a tiny predictable cost but stays extremely fast
+//   (< 0.00007 ms/op even at depth 15).
+//
+// Overall: All Sigil checks are in the same performance class as native instanceof.
+// The overhead is negligible for real applications.
 //
