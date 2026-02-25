@@ -5,18 +5,13 @@ import type { SigilOptions } from './options';
  * HOF (class inhancer) that attaches runtime sigil metadata to Sigil class.
  * Alternative to '@WithSigil' if you prefer HOFs.
  *
- * @typeParam S - Constructor type (should be an ISigil).
- * @typeParam L - Label literal to attach.
+ * @typeParam S - Constructor type (should be an instance of sigil class).
  * @param Class - The constructor (class) to enhance.
- * @param label - Optional label string. If omitted, a random label is generated.
+ * @param label - Sigil label string to assign to the decorated class (e.g. `@scope/pkg.ClassName`).
  * @param opts - Options object to override any global options if needed.
  * @returns The same constructor value, with runtime metadata ensured.
  */
-export function withSigil<S extends Function, L extends string = string>(
-  Class: S,
-  label?: L,
-  opts?: SigilOptions
-): S {
+export function withSigil<S extends Function>(Class: S, label: string, opts?: SigilOptions): S {
   if (!isSigilCtor(Class))
     throw new Error(
       `[Sigil Error] 'withSigil' HOF accept only Sigil classes  but used on class ${Class?.name ?? 'unknown'}`

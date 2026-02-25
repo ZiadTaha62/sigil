@@ -2,14 +2,17 @@ import { OPTIONS, type SigilOptions } from './options';
 import { __LABEL__, __EFFECTIVE_LABEL__, __SIGIL__, __LINEAGE__ } from './symbols';
 import type { ISigil, ISigilInstance } from './types';
 
+/** Prefex use by the lib to identify auto-generated classes */
 const AUTO_LABEL_PREFEX = '@Sigil-auto';
 
 /** -----------------------------------------
  *  Main helper
  * ----------------------------------------- */
 
+/** Weak set to ensure that every ctor is handled only once. */
 const handledCtors = new WeakSet<Function>();
 
+/** Main function to handle 'Sigil' and attach its metadata to the class */
 export function handleSigil(ctor: Function, label?: string, opts?: SigilOptions) {
   // fast return if already defined
   if (handledCtors.has(ctor)) return;
@@ -183,9 +186,14 @@ function verifyLabel<L extends string>(ctor: Function, label?: L, opts?: SigilOp
   }
 }
 
-let counter = 0;
+if (!(globalThis as any).__SigilabelCounter) (globalThis as any).__SigilabelCounter = 0;
+
 function generateRandomLabel(ctor: Function): string {
   const namePart = ctor && typeof ctor.name === 'string' && ctor.name.length ? ctor.name : 'C';
-  const suffix = (counter++).toString(36) + Math.random().toString(36).slice(2, 6);
-  return `${AUTO_LABEL_PREFEX}:${namePart}:${suffix}`;
+
+  const counter = (globalThis as any).__SigilabelCounter++;
+  const time = Date.now().toString(36);
+  const rand = Math.random().toString(36).slice(2, 6);
+
+  return `${AUTO_LABEL_PREFEX}:${namePart}:${time}:${counter.toString(36)}:${rand}`;
 }

@@ -27,9 +27,9 @@ export const __LABEL__ = Symbol.for('@vicin/sigil.__LABEL__');
 export const __EFFECTIVE_LABEL__ = Symbol.for('@vicin/sigil.__EFFECTIVE_LABEL__');
 
 /**
- * Symbol used to store the linearized label lineage for a sigil constructor.
+ * Symbol used to store the label lineage set for a sigil constructor.
  *
- * This is an array of labels (strings) representing the inheritance path of labels.
+ * This is a set of labels (strings) representing the inheritance path of labels.
  *
  * @internal
  * @constant {symbol}

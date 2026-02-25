@@ -6,7 +6,7 @@ import type {
   Prettify,
   ConstructorAbstract,
   ISigilInstance,
-  GetInstance,
+  GetPrototype,
   ISigilStatic,
 } from './types';
 import { sigil } from './types';
@@ -18,7 +18,7 @@ import { sigil } from './types';
  * @param label - Optional identity label to attach to the resulting class (e.g. '@scope/pkg.ClassName').
  *                If not passed a random label is generated instead.
  * @param opts - Options object to override any global options if needed.
- * @returns A new abstract constructor that extends `Base` and includes Sigil statics/instance methods.
+ * @returns A new constructor that extends `Base` and includes Sigil statics/instance methods.
  * @throws Error if `Base` is already sigilified.
  */
 export function Sigilify<B extends Constructor, L extends string>(
@@ -49,7 +49,7 @@ export function Sigilify<B extends Constructor, L extends string>(
     }
 
     /**
-     * Copy of the linearized sigil type label chain for the current constructor.
+     * Linearized sigil type label chain for the current constructor.
      *
      * Useful for debugging and performing strict lineage comparisons.
      *
@@ -61,7 +61,7 @@ export function Sigilify<B extends Constructor, L extends string>(
     }
 
     /**
-     * Copy of the sigil type label set for the current constructor.
+     * Sigil type label set for the current constructor.
      * Useful for debugging.
      *
      * @returns A Readonly Set of labels that represent the type lineage.
@@ -72,11 +72,7 @@ export function Sigilify<B extends Constructor, L extends string>(
     }
 
     /**
-     * Compile-time nominal brand that encodes the class label `L` plus parent's brand keys `BrandOf<P>`.
-     *
-     * - HAVE NO RUN-TIME VALUE (undefined)
-     * - Provides a *type-only* unique marker that makes instances nominally
-     *   distinct by label and allows propagation/merging of brand keys across inheritance.
+     * Compile-time nominal brand that encodes the class sigil labels object.
      */
     declare readonly [sigil]: Prettify<
       {
@@ -114,7 +110,7 @@ export function Sigilify<B extends Constructor, L extends string>(
      * @param other - The object to test.
      * @returns A type guard asserting `other` is an instance of the constructor.
      */
-    static isOfType<T extends ISigilStatic>(this: T, other: unknown): other is GetInstance<T> {
+    static isOfType<T extends ISigilStatic>(this: T, other: unknown): other is GetPrototype<T> {
       handleSigil(this as any);
       if (other == null || typeof other !== 'object') return false;
       return (other as any)[(this as any).prototype?.[__SIGIL__]] === true;
@@ -129,7 +125,7 @@ export function Sigilify<B extends Constructor, L extends string>(
      * @param other - The object to test.
      * @returns A type guard asserting `other` is an instance of the constructor.
      */
-    static isExactType<T extends ISigilStatic>(this: T, other: unknown): other is GetInstance<T> {
+    static isExactType<T extends ISigilStatic>(this: T, other: unknown): other is GetPrototype<T> {
       handleSigil(this as any);
       if (other == null || typeof other !== 'object') return false;
       if ((this as any).prototype?.[__LINEAGE__].size !== (other as any)[__LINEAGE__]?.size)
@@ -172,7 +168,7 @@ export function Sigilify<B extends Constructor, L extends string>(
     /**
      * Returns the identity sigil label of this instance's constructor.
      *
-     * @returns The label string if passed (e.g. '@scope/pkg.ClassName'), random label if not passed (e.g. '@Sigil.auto-dq62ib6jnvmmlfbjhxh2937h').
+     * @returns The label string if passed (e.g. '@scope/pkg.ClassName'), random label if not passed (e.g. '@Sigil-auto:ClassName:mm2gkdwn:0:g1sq').
      */
     getSigilLabel(): string {
       return (this as any)[__LABEL__];
@@ -197,7 +193,7 @@ export function Sigilify<B extends Constructor, L extends string>(
     }
 
     /**
-     * Returns a copy of the sigil type label lineage for this instance's constructor.
+     * Returns a copy of the sigil type label lineage set for this instance's constructor.
      *
      * @returns readonly array of labels representing the type lineage.
      */
@@ -248,7 +244,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
     }
 
     /**
-     * Copy of the linearized sigil type label chain for the current constructor.
+     * Linearized sigil type label chain for the current constructor.
      *
      * Useful for debugging and performing strict lineage comparisons.
      *
@@ -260,7 +256,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
     }
 
     /**
-     * Copy of the sigil type label set for the current constructor.
+     * Sigil type label set for the current constructor.
      * Useful for debugging.
      *
      * @returns A Readonly Set of labels that represent the type lineage.
@@ -271,11 +267,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
     }
 
     /**
-     * Compile-time nominal brand that encodes the class label `L` plus parent's brand keys `BrandOf<P>`.
-     *
-     * - HAVE NO RUN-TIME VALUE (undefined)
-     * - Provides a *type-only* unique marker that makes instances nominally
-     *   distinct by label and allows propagation/merging of brand keys across inheritance.
+     * Compile-time nominal brand that encodes the class sigil labels object.
      */
     declare readonly [sigil]: Prettify<
       {
@@ -313,7 +305,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      * @param other - The object to test.
      * @returns A type guard asserting `other` is an instance of the constructor.
      */
-    static isOfType<T>(this: T, other: unknown): other is GetInstance<T> {
+    static isOfType<T>(this: T, other: unknown): other is GetPrototype<T> {
       if (other == null || typeof other !== 'object') return false;
       return (other as any)[(this as any).prototype?.[__SIGIL__]] === true;
     }
@@ -327,7 +319,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      * @param other - The object to test.
      * @returns A type guard asserting `other` is an instance of the constructor.
      */
-    static isExactType<T>(this: T, other: unknown): other is GetInstance<T> {
+    static isExactType<T>(this: T, other: unknown): other is GetPrototype<T> {
       if (other == null || typeof other !== 'object') return false;
       if ((this as any).prototype?.[__LINEAGE__].size !== (other as any)[__LINEAGE__]?.size)
         return false;
@@ -369,7 +361,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
     /**
      * Returns the identity sigil label of this instance's constructor.
      *
-     * @returns The label string if passed (e.g. '@scope/pkg.ClassName'), random label if not passed (e.g. '@Sigil.auto-dq62ib6jnvmmlfbjhxh2937h').
+     * @returns The label string if passed (e.g. '@scope/pkg.ClassName'), random label if not passed (e.g. '@Sigil-auto:ClassName:mm2gkdwn:0:g1sq').
      */
     getSigilLabel(): string {
       return (this as any)[__LABEL__];
@@ -394,7 +386,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
     }
 
     /**
-     * Returns a copy of the sigil type label lineage for this instance's constructor.
+     * Returns a copy of the sigil type label lineage set for this instance's constructor.
      *
      * @returns readonly array of labels representing the type lineage.
      */

@@ -44,9 +44,6 @@ export interface ISigilStatic<L extends string = string> {
    * Runtime check that determines whether `obj` is an instance produced by a
    * sigil class.
    *
-   * Note: the concrete implementation provided by the mixin delegates to
-   * `isSigilInstance`.
-   *
    * @param obj - Value to test.
    * @returns Type guard narrowing `obj` to `ISigilInstance`.
    */
@@ -64,7 +61,7 @@ export interface ISigilStatic<L extends string = string> {
    * @param other - The object to test.
    * @returns A type guard asserting `other` is an instance of the constructor.
    */
-  isOfType<T extends ISigilStatic>(this: T, other: unknown): other is GetInstance<T>;
+  isOfType<T extends ISigilStatic>(this: T, other: unknown): other is GetPrototype<T>;
 
   /**
    * Check whether `other` is exactly the same instance represented by the
@@ -75,7 +72,7 @@ export interface ISigilStatic<L extends string = string> {
    * @param other - The object to test.
    * @returns A type guard asserting `other` is an instance of the constructor.
    */
-  isExactType<T extends ISigilStatic>(this: T, other: unknown): other is GetInstance<T>;
+  isExactType<T extends ISigilStatic>(this: T, other: unknown): other is GetPrototype<T>;
 }
 
 /**
@@ -86,13 +83,7 @@ export interface ISigilStatic<L extends string = string> {
  * @template P - Optinal parent to extend its '[sigil]'.
  */
 export interface ISigilInstance<L extends string = string, P extends Function = never> {
-  /**
-   * Compile-time nominal brand that encodes the class label `L` plus parent's brand keys `BrandOf<P>`.
-   *
-   * - HAVE NO RUN-TIME VALUE (undefined)
-   * - Provides a *type-only* unique marker that makes instances nominally
-   *   distinct by label and allows propagation/merging of brand keys across inheritance.
-   */
+  /** Compile-time nominal brand that encodes the class label `L` plus parent's sigil labels `SigilOf<P>`. */
   readonly [sigil]: Prettify<{ Sigil: true } & IfNever<SigilOf<P>, {}> & { [k in L]: true }>;
   /** Returns identity sigil label of the class constructor. */
   getSigilLabel(): string;
@@ -139,16 +130,16 @@ export type ISigil<L extends string = string, P extends Function = never> = Cons
 > &
   ISigilStatic<L>;
 
-/** Update '[sigil]' field when manual typing is used. */
+/** Update '[sigil]' field for nominal typing */
 export type ExtendSigil<L extends string, P extends ISigilInstance> = Prettify<
   IfNever<SigilOf<P>, {}> & { [K in L]: true }
 >;
 
 /**
- * Extract the compile-time brand map from a sigil instance `S`.
+ * Extract the compile-time label map from a sigil instance `S`.
  *
  * @typeParam S - A sigil instance type.
- * @returns The sigil brand record (e.g. `{ User: true, Admin: true }`) or never if not Sigil class instance.
+ * @returns The sigil label record (e.g. `{ User: true, Admin: true }`) or never if not Sigil class instance.
  */
 export type SigilOf<S> = S extends { readonly [sigil]: infer Sigil } ? Sigil : never;
 
@@ -186,4 +177,5 @@ export type Prettify<T> = { [K in keyof T]: T[K] } & {};
 /** Helper type to replace 'never' with another type */
 type IfNever<T, R = {}> = [T] extends [never] ? R : T;
 
-export type GetInstance<T> = T extends { prototype: infer P } ? P : never;
+/** Helper type to get prototype of class */
+export type GetPrototype<T> = T extends { prototype: infer P } ? P : never;

@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [3.1.0] - 2026-02-25
 
+### Added
+
+- `isExactType` is added to check for exact instances (children are ingored as well)
+
 ### Removed
 
 - `SigilOptions.skipLabelInheritanceCheck` is removed.

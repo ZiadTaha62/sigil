@@ -152,7 +152,7 @@ Congratulations — you’ve opted into `Sigil` and you can start replacing `ins
 
 ### Terminology
 
-- **Label**: An identity (string) such as `@scope/pkg.ClassName`, but can be random string (e.g. `@Sigil.auto-dq62ib6jnvmmlfbjhxh2937h`) if no label passed.
+- **Label**: An identity (string) such as `@scope/pkg.ClassName`, but can be random string (e.g. `@Sigil-auto:ClassName:mm2gkdwn:0:g1sq`) if no label passed.
 - **EffectiveLabel:** A human-readable (string) such as `@scope/pkg.ClassName`, if no label is passed it inherit the last defined label.
 - **Label lineage**: Array of labels for ancestry.
 - **Label set**: Set of labels for fast checks.

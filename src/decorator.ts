@@ -4,18 +4,11 @@ import type { SigilOptions } from './options';
 /**
  * Class decorator factory that attaches sigil statics to a class constructor.
  *
- * Notes:
- * - This decorator is intended to be applied to classes only. When used
- *   incorrectly (e.g. on a property), it is a no-op.
- * - Throws an error during class creation if the label validation fails (in development only).
- *
- * @typeParam L - Narrow string literal type for the provided label.
- * @param label - Optional sigil label to assign to the decorated class (e.g. `@scope/pkg.ClassName`).
- *                If not passed a random label is generated instead.
+ * @param label - Sigil label string to assign to the decorated class (e.g. `@scope/pkg.ClassName`).
  * @param opts - Options object to override any global options if needed.
  * @returns A class decorator compatible with the ECMAScript decorator context.
  */
-export function WithSigil<L extends string>(label?: L, opts?: SigilOptions) {
+export function WithSigil(label: string, opts?: SigilOptions) {
   return function (value: Function, context: any) {
     // Only apply to class declarations
     if (context.kind !== 'class') return;
