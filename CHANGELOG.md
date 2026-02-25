@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.1] - 2026-02-25
+
+### Changed
+
+- Updated README.md
+
 ## [3.1.0] - 2026-02-25
 
 ### Added
