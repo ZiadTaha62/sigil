@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.2] - 2026-02-26
+
+### Changed
+
+- Patched README.md
+
+### Added
+
+- `GetPrototype<T>` helper to get type of class instance in `protected` or `private` classes
+
+### Removed
+
+- `isSigilified` method in `Sigil` class as it's redundant and separate check function is present
+
 ## [3.1.1] - 2026-02-25
 
 ### Changed

@@ -5,25 +5,25 @@
 > - 🎉 v3.0.0 is out! Happy coding! 😄💻
 > - 📄 **Changelog:** [CHANGELOG.md](./CHANGELOG.md)
 
-`Sigil` replaces `instanceof` across bundles, enforces nominal class identity, and makes inheritance-aware runtime type checks reliable in large TypeScript systems. It organizes class identities across your codebase and gives you the power of **nominal typing** and **safe cross-bundle class checks** where each class constructor is stored under a unique label.
+`Sigil` gives you the power of **safe cross-bundle class instances checks** and **simple class nominal typing** if needed.
 
 > **Key ideas:**
 >
-> - **Reliable Runtime Checks:** Uses labels instead of instanceof for cross-bundle reliability.
+> - **Reliable Runtime Checks:** Uses `isOfType` instead of `instanceof` for cross-bundle reliability.
 > - **Nominal Typing at Compile Time:** Distinguishes structurally similar types (e.g., UserId vs. PostId).
-> - **Inheritance Awareness:** Tracks lineages for subtype/supertype checks.
+
+## Features
+
+- ✅ **Drop-in `instanceof` replacement** that works across bundles, HMR, and monorepos, Also can check for **exact class instance**
+- ✅ **Simple nominal typing** with just one line of code for each class
+- ✅ **Tiny less than 1.5 KB minified and brotlied** measured using [size-limit](https://www.npmjs.com/package/size-limit)
+- ✅ **Performant as native instanceof** but with guaranteed checks
+- ✅ **Test coverage is 100%** to ensure that runtime remains consistent and predictable
 
 ## Important Notes Before Using
 
 - **Explicit class identity:** `Sigil` uses passed class label to identify classes, which means that the developer is responsible for uniqueness of classes by passing unique labels.
 - **Simple instanceof Fix:** If you just need runtime checks without extras, see the [minimal mode](#minimal-mode).
-
-## Features
-
-- ✅ **Drop-in `instanceof` replacement** that works across bundles, HMR, and monorepos, Also can check for **exact class instance**
-- ✅ **True nominal typing** with zero runtime cost
-- ✅ **Tiny less than 1.5 KB minified and brotlied** measured using size-limit
-- ✅ **Performant as native instanceof** but with guaranteed checks
 
 ---
 
@@ -45,6 +45,7 @@
 - [Minimal mode](#minimal-mode)
 - [Strict mode](#strict-mode)
 - [Benchmarks](#benchmarks)
+- [Tests](#tests)
 - [Contributing](#contributing)
 - [License](#license)
 - [Author](#author)
@@ -152,8 +153,8 @@ Congratulations — you’ve opted into `Sigil` and you can start replacing `ins
 
 - **Label**: An identity (string) such as `@scope/pkg.ClassName`, but can be random string (e.g. `@Sigil-auto:ClassName:mm2gkdwn:0:g1sq`) if no label passed.
 - **EffectiveLabel:** A human-readable (string) such as `@scope/pkg.ClassName`, if no label is passed it inherit the last defined label.
-- **Label lineage**: Array of labels for ancestry.
-- **Label set**: Set of labels for fast checks.
+- **isOfType**: Takes object argument and check if this object is an instance of calling class or it's children. Can be called from class instances as well.
+- **isExactType**: Takes object argument and check if this object is an instance of calling class only. Can be called from class instances as well.
 - **[sigil]**: TypeScript symbol marker for nominal types.
 
 ---
@@ -186,7 +187,7 @@ type test1 = User extends Sigil ? true : false; // true
 type test2 = Sigil extends User ? true : false; // false
 ```
 
-`Sigil` abstracts these into a **centralized system**, making identity management **explicit** and **error-resistant** if defined the right way.
+`Sigil` makes identity management **explicit** and **error-resistant** if defined the right way.
 
 ### Implementation Mechanics
 
@@ -198,7 +199,7 @@ import { Sigil, WithSigil, sigil, ExtendSigil } from '@vicin/sigil';
 
 @WithSigil('@scope/package.MyClass') // <-- Run-time values update
 class MyClass extends Sigil {
-  declare [sigil]: ExtendSigil<'@scope/package.MyClass', Sigil>; // <-- compile-time type update
+  declare [sigil]: ExtendSigil<'MyClass', Sigil>; // <-- compile-time type update
 }
 ```
 
@@ -208,14 +209,14 @@ You can avoid decorators and use HOF but they are slightly more verbose:
 import { Sigil, withSigil, sigil, ExtendSigil } from '@vicin/sigil';
 
 class _MyClass extends Sigil {
-  declare [sigil]: ExtendSigil<'@scope/package.MyClass', Sigil>;
+  declare [sigil]: ExtendSigil<'MyClass', Sigil>;
 }
 
 const MyClass = withSigil(_MyClass, '@scope/package.MyClass');
 type MyClass = InstanceType<typeof MyClass>;
 ```
 
-Note that you can't use `InstanceType` on `private` or `protected` classes.
+Note that you can't use `InstanceType` on `private` or `protected` classes, however you can use `GetPrototype<T>` in such cases.
 
 ### Inheritance example
 
@@ -224,12 +225,12 @@ import { Sigil, WithSigil } from '@vicin/sigil';
 
 @WithSigil('@myorg/User')
 class User extends Sigil {
-  declare [sigil]: ExtendSigil<'@myorg/User', Sigil>;
+  declare [sigil]: ExtendSigil<'User', Sigil>;
 }
 
 @WithSigil('@myorg/Admin')
 class Admin extends User {
-  declare [sigil]: ExtendSigil<'@myorg/Admin', User>;
+  declare [sigil]: ExtendSigil<'Admin', User>;
 }
 
 const admin = new Admin();
@@ -258,8 +259,8 @@ type test2 = User extends Admin ? true : false; // false
 ### Primary Exports
 
 - **Mixins:**
-  - `Sigilify(Base, label?, opts?)`
-  - `SigilifyAbstract(Base, label?, opts?)`
+  - `Sigilify(Base, label, opts?)`
+  - `SigilifyAbstract(Base, label, opts?)`
 
 - **Classes:**
   - `Sigil`
@@ -269,15 +270,11 @@ type test2 = User extends Admin ? true : false; // false
   - `WithSigil(label, opts?)`
 
 - **HOFs:**
-  - `withSigil(Class, label?, opts?)`
+  - `withSigil(Class, label, opts?)`
 
 - **Helpers:**
   - `isSigilCtor(ctor)`
   - `isSigilInstance(inst)`
-  - `isSigilBaseCtor(ctor)`
-  - `isSigilBaseInstance(inst)`
-  - `isDecorated(ctor)`
-  - `isInheritanceChecked(ctor)`
 
 - **Options:**
   - `updateSigilOptions(opts)`
@@ -289,18 +286,20 @@ type test2 = User extends Admin ? true : false; // false
   - `ISigilInstance<Label, ParentSigil?>`
   - `SigilOf<T>`
   - `ExtendSigil<Label, Parent>`
+  - `GetPrototype<Class>`
   - `SigilOptions`
 
 ### Key helpers (runtime)
 
 - `Sigil`: a minimal sigilified base class you can extend from.
 - `SigilError`: an `Error` class decorated with a `Sigil` so it can be identified at runtime.
-- `Sigilify(Base, label?, opts?)`: mixin function that returns a new constructor with `Sigil` types and instance helpers.
-- `WithSigil(label)`: class decorator that attaches `Sigil` metadata at declaration time.
-- `withSigil(Class, label?, opts?)`: HOF that validates and decorates an existing class constructor.
+- `Sigilify(Base, label, opts?)`: mixin function that returns a new constructor with `Sigil` types and instance helpers.
+- `SigilifyAbstract(Base, label, opts?)`: Same as `Sigilify` but for abstract classes.
+- `WithSigil(label, opts?)`: class decorator that attaches `Sigil` metadata at declaration time.
+- `withSigil(Class, label, opts?)`: HOF that validates and decorates an existing class constructor.
 - `isSigilCtor(value)`: `true` if `value` is a `Sigil` constructor.
 - `isSigilInstance(value)`: `true` if `value` is an instance of a `Sigil` constructor.
-- `updateSigilOptions(opts)`: change global runtime options before `Sigil` decoration (e.g., `autofillLabels`).
+- `updateSigilOptions(opts)`: change global runtime options of `Sigil` library (e.g., `autofillLabels`).
 - `DEFAULT_LABEL_REGEX`: regex that ensures structure of `@scope/package.ClassName` to all labels, it's advised to use it as your `SigilOptions.labelValidation`
 
 ### Instance & static helpers provided by Sigilified constructors
@@ -310,8 +309,7 @@ When a constructor is decorated/sigilified it will expose the following **static
 - `SigilLabel` — the identity label string.
 - `SigilEffectiveLabel` — the human label string.
 - `SigilLabelLineage` — readonly array of labels representing parent → child for debugging.
-- `SigilLabelSet` — readonly `Set<string>` for debugging.
-- `isSigilified(obj)` — runtime predicate that delegates to `isSigilInstance`.
+- `SigilLabelSet` — readonly `Set<string>` of sigil labels for debugging.
 - `isOfType(other)` — check if other is an instance of this constructor or its children.
 - `isExactType(other) `— check if other is an instance exactly this constructor.
 
@@ -335,7 +333,6 @@ import { updateSigilOptions } from '@vicin/sigil';
 
 updateSigilOptions({
   autofillLabels: true, // Automatically label unlabeled subclasses
-  skipLabelInheritanceCheck: false, // Bypass dev inheritance checks -- ALMOST NEVER WANT TO SET THIS TO TRUE
   labelValidation: null, // Function or regex, Enforce label format
 });
 ```
@@ -367,14 +364,14 @@ import { updateSigilOptions } from '@vicin/sigil';
 updateSigilOptions({ autofillLabels: false });
 ```
 
-Now if you forgot to pass a label error is thrown.
+Now if you forgot to pass a label error is thrown at the moment you create class instance or use any of `Sigil` methods.
 
 ---
 
 ## Benchmarks
 
 Sigil is built for **real-world performance**. Below are the latest micro-benchmark results (run on **Node.js v20.12.0**).
-To run benchmarks on your machine fetch source code from [github](https://github.com/ZiadTaha62/sigil) and run `npm run bench` in your console.
+To run benchmarks on your machine fetch source code from [github](https://github.com/ZiadTaha62/sigil), install dev dependencies then run `npm run bench` in your console.
 
 ### 1. Runtime Type Checking
 
@@ -412,8 +409,42 @@ To run benchmarks on your machine fetch source code from [github](https://github
 ### Bundle Size
 
 **less than 1.5 KB** (minified + Brotli, including all dependencies)
+To verify bundle size fetch source code from [github](https://github.com/ZiadTaha62/sigil), install dev dependencies then run `npm run size` in your console.
 
 This makes Sigil one of the smallest full-featured solutions for nominal typing + reliable runtime identity.
+
+---
+
+## Tests
+
+Reliability is a core pillar of `Sigil`. The library is backed by a comprehensive suite of unit tests that cover everything from basic mixins to lazy evaluation.
+
+**Coverage Status**
+
+We maintain **100%** test coverage across the entire codebase to ensure that runtime metadata remains consistent and predictable.
+
+| Metric | Score |
+| ------ | ----- |
+| Stmts  | 100%  |
+| Branch | 100%  |
+| Funcs  | 100%  |
+| Lines  | 100%  |
+
+**Key Test Areas**
+
+**Mixins, Decorators & HOFs:** Validating `Sigilify`, `WithSigil` and `withSigil` behaviors.
+**Sigil methods:** Ensuring `Sigil` class methods (e.g. `SigilLabel`, `getSigilLabel`) work as expected.
+**Lazy Evaluation:** Ensuring metadata is attached before being accessed via `Sigil` methods.
+**Lineage:** Verifying that `isOfType` and `isExactType` work across complex inheritance chains.
+**Error Handling:** Strict validation for all errors and throws.
+
+**Running Tests**
+
+To run the test suite locally and generate a coverage report, use:
+
+```bash
+npm run test:unit
+```
 
 ---
 

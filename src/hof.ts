@@ -14,7 +14,7 @@ import type { SigilOptions } from './options';
 export function withSigil<S extends Function>(Class: S, label: string, opts?: SigilOptions): S {
   if (!isSigilCtor(Class))
     throw new Error(
-      `[Sigil Error] 'withSigil' HOF accept only Sigil classes  but used on class ${Class?.name ?? 'unknown'}`
+      `[Sigil Error] 'withSigil' HOF accept only Sigil classes but used on class '${Class.name}'`
     );
   if (hasOwnSigil(Class))
     throw new Error(

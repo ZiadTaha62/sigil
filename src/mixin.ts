@@ -1,4 +1,4 @@
-import { handleSigil, hasOwnSigil, isSigilInstance } from './helpers';
+import { handleSigil, hasOwnSigil } from './helpers';
 import type { SigilOptions } from './options';
 import { __LABEL__, __EFFECTIVE_LABEL__, __LINEAGE__, __SIGIL__ } from './symbols';
 import type {
@@ -8,22 +8,21 @@ import type {
   ISigilInstance,
   GetPrototype,
   ISigilStatic,
+  sigil,
 } from './types';
-import { sigil } from './types';
 
 /**
  * Mixin factory that augments an existing class with Sigil runtime metadata and helpers.
  *
  * @param Base - The base constructor to extend.
- * @param label - Optional identity label to attach to the resulting class (e.g. '@scope/pkg.ClassName').
- *                If not passed a random label is generated instead.
+ * @param label - Identity label to attach to the resulting class (e.g. '@scope/pkg.ClassName').
  * @param opts - Options object to override any global options if needed.
  * @returns A new constructor that extends `Base` and includes Sigil statics/instance methods.
  * @throws Error if `Base` is already sigilified.
  */
 export function Sigilify<B extends Constructor, L extends string>(
   Base: B,
-  label?: L,
+  label: L,
   opts?: SigilOptions
 ) {
   if (hasOwnSigil(Base))
@@ -37,7 +36,7 @@ export function Sigilify<B extends Constructor, L extends string>(
      */
     static get SigilLabel(): L {
       handleSigil(this);
-      return (this as any).prototype?.[__LABEL__];
+      return (this as any).prototype[__LABEL__];
     }
 
     /**
@@ -45,7 +44,7 @@ export function Sigilify<B extends Constructor, L extends string>(
      */
     static get SigilEffectiveLabel(): L {
       handleSigil(this);
-      return (this as any).prototype?.[__EFFECTIVE_LABEL__];
+      return (this as any).prototype[__EFFECTIVE_LABEL__];
     }
 
     /**
@@ -57,7 +56,7 @@ export function Sigilify<B extends Constructor, L extends string>(
      */
     static get SigilLabelLineage(): readonly string[] {
       handleSigil(this);
-      return [...((this as any).prototype?.[__LINEAGE__] ?? [])];
+      return [...(this as any).prototype[__LINEAGE__]];
     }
 
     /**
@@ -68,7 +67,7 @@ export function Sigilify<B extends Constructor, L extends string>(
      */
     static get SigilLabelSet(): Readonly<Set<string>> {
       handleSigil(this);
-      return (this as any).prototype?.[__LINEAGE__];
+      return (this as any).prototype[__LINEAGE__];
     }
 
     /**
@@ -89,16 +88,6 @@ export function Sigilify<B extends Constructor, L extends string>(
     }
 
     /**
-     * Runtime predicate indicating whether `obj` is an instance produced by a sigil class.
-     *
-     * @param obj - The value to test.
-     * @returns `true` if `obj` is a sigil instance.
-     */
-    static isSigilified(obj: unknown): obj is ISigilInstance {
-      return isSigilInstance(obj);
-    }
-
-    /**
      * Check whether `other` is (or inherits from) the instance represented by the
      * calling constructor.
      *
@@ -113,7 +102,7 @@ export function Sigilify<B extends Constructor, L extends string>(
     static isOfType<T extends ISigilStatic>(this: T, other: unknown): other is GetPrototype<T> {
       handleSigil(this as any);
       if (other == null || typeof other !== 'object') return false;
-      return (other as any)[(this as any).prototype?.[__SIGIL__]] === true;
+      return (other as any)[(this as any).prototype[__SIGIL__]] === true;
     }
 
     /**
@@ -130,7 +119,7 @@ export function Sigilify<B extends Constructor, L extends string>(
       if (other == null || typeof other !== 'object') return false;
       if ((this as any).prototype?.[__LINEAGE__].size !== (other as any)[__LINEAGE__]?.size)
         return false;
-      return (other as any)[(this as any).prototype?.[__SIGIL__]] === true;
+      return (other as any)[(this as any).prototype[__SIGIL__]] === true;
     }
 
     /**
@@ -210,20 +199,19 @@ export function Sigilify<B extends Constructor, L extends string>(
  * Mixin factory that augments an existing class with Sigil runtime metadata and helpers. Accept and return 'abstract' class.
  *
  * @param Base - The base constructor to extend.
- * @param label - Optional identity label to attach to the resulting class (e.g. '@scope/pkg.ClassName').
- *                If not passed a random label is generated instead.
+ * @param label - Identity label to attach to the resulting class (e.g. '@scope/pkg.ClassName').
  * @param opts - Options object to override any global options if needed.
  * @returns A new abstract constructor that extends `Base` and includes Sigil statics/instance methods.
  * @throws Error if `Base` is already sigilified.
  */
 export function SigilifyAbstract<B extends ConstructorAbstract, L extends string>(
   Base: B,
-  label?: L,
+  label: L,
   opts?: SigilOptions
 ) {
   if (hasOwnSigil(Base))
     throw new Error(
-      `[Sigil Error] Base class '${Base.name}' with label '${Base.SigilLabel}' is already sigilified`
+      `[Sigil Error] Class '${Base.name}' with label '${Base.SigilLabel}' is already sigilified`
     );
 
   abstract class Sigilified extends Base implements ISigilInstance {
@@ -232,7 +220,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      */
     static get SigilLabel(): L {
       handleSigil(this);
-      return (this as any).prototype?.[__LABEL__];
+      return (this as any).prototype[__LABEL__];
     }
 
     /**
@@ -240,7 +228,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      */
     static get SigilEffectiveLabel(): L {
       handleSigil(this);
-      return (this as any).prototype?.[__EFFECTIVE_LABEL__];
+      return (this as any).prototype[__EFFECTIVE_LABEL__];
     }
 
     /**
@@ -252,7 +240,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      */
     static get SigilLabelLineage(): readonly string[] {
       handleSigil(this);
-      return [...((this as any).prototype?.[__LINEAGE__] ?? [])];
+      return [...(this as any).prototype[__LINEAGE__]];
     }
 
     /**
@@ -263,7 +251,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      */
     static get SigilLabelSet(): Readonly<Set<string>> {
       handleSigil(this);
-      return (this as any).prototype?.[__LINEAGE__];
+      return (this as any).prototype[__LINEAGE__];
     }
 
     /**
@@ -284,16 +272,6 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
     }
 
     /**
-     * Runtime predicate indicating whether `obj` is an instance produced by a sigil class.
-     *
-     * @param obj - The value to test.
-     * @returns `true` if `obj` is a sigil instance.
-     */
-    static isSigilified(obj: unknown): obj is ISigilInstance {
-      return isSigilInstance(obj);
-    }
-
-    /**
      * Check whether `other` is (or inherits from) the instance represented by the
      * calling constructor.
      *
@@ -306,8 +284,9 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      * @returns A type guard asserting `other` is an instance of the constructor.
      */
     static isOfType<T>(this: T, other: unknown): other is GetPrototype<T> {
+      handleSigil(this as any);
       if (other == null || typeof other !== 'object') return false;
-      return (other as any)[(this as any).prototype?.[__SIGIL__]] === true;
+      return (other as any)[(this as any).prototype[__SIGIL__]] === true;
     }
 
     /**
@@ -320,10 +299,11 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
      * @returns A type guard asserting `other` is an instance of the constructor.
      */
     static isExactType<T>(this: T, other: unknown): other is GetPrototype<T> {
+      handleSigil(this as any);
       if (other == null || typeof other !== 'object') return false;
       if ((this as any).prototype?.[__LINEAGE__].size !== (other as any)[__LINEAGE__]?.size)
         return false;
-      return (other as any)[(this as any).prototype?.[__SIGIL__]] === true;
+      return (other as any)[(this as any).prototype[__SIGIL__]] === true;
     }
 
     /**

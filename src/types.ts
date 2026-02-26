@@ -41,15 +41,6 @@ export interface ISigilStatic<L extends string = string> {
   readonly SigilLabelSet: Readonly<Set<string>>;
 
   /**
-   * Runtime check that determines whether `obj` is an instance produced by a
-   * sigil class.
-   *
-   * @param obj - Value to test.
-   * @returns Type guard narrowing `obj` to `ISigilInstance`.
-   */
-  isSigilified(obj: unknown): obj is ISigilInstance;
-
-  /**
    * Check whether `other` is (or inherits from) the instance represented by the
    * calling constructor.
    *
@@ -177,5 +168,9 @@ export type Prettify<T> = { [K in keyof T]: T[K] } & {};
 /** Helper type to replace 'never' with another type */
 type IfNever<T, R = {}> = [T] extends [never] ? R : T;
 
-/** Helper type to get prototype of class */
+/**
+ * Helper type to get prototype of class
+ *
+ * @template T - Class constructor.
+ */
 export type GetPrototype<T> = T extends { prototype: infer P } ? P : never;

@@ -16,7 +16,6 @@ const handledCtors = new WeakSet<Function>();
 export function handleSigil(ctor: Function, label?: string, opts?: SigilOptions) {
   // fast return if already defined
   if (handledCtors.has(ctor)) return;
-  handledCtors.add(ctor);
 
   // Verify label
   verifyLabel(ctor, label, opts);
@@ -27,18 +26,24 @@ export function handleSigil(ctor: Function, label?: string, opts?: SigilOptions)
   // make sure that newly passed label is unique as well
   if (label && ancLabelsMap.has(label))
     throw new Error(
-      `[Sigil Error] Attempt to assign label '${label}' to ${ctor.name} but label is already used by parent '${ancLabelsMap.get(label)}', Make sure that every class has a unique label`
+      `[Sigil Error] Attempt to assign label '${label}' to class '${ctor?.name}' but label is already used by parent '${ancLabelsMap.get(label)}', Make sure that every class has a unique label`
     );
 
   // handle current class
   sigilify(ctor, label ?? generateRandomLabel(ctor));
+
+  // mark as handled
+  handledCtors.add(ctor);
 }
 
 /** -----------------------------------------
  *  Generic helpers
  * ----------------------------------------- */
 
-function handleAncestors(ctor: Function, opts?: SigilOptions): Map<string, string> {
+function handleAncestors(
+  ctor: Function,
+  opts?: Pick<SigilOptions, 'autofillLabels'>
+): Map<string, string> {
   // handle options
   const autofillLabels = opts?.autofillLabels ?? OPTIONS.autofillLabels;
 
@@ -127,7 +132,7 @@ function sigilify(ctor: Function, label: string) {
  * @returns `true` if `value` is a sigil constructor, otherwise `false`.
  */
 export function isSigilCtor(ctor: unknown): ctor is ISigil {
-  return typeof ctor === 'function' && __SIGIL__ in ctor.prototype;
+  return typeof ctor === 'function' && ctor.prototype && __SIGIL__ in ctor.prototype;
 }
 
 /**
@@ -165,7 +170,7 @@ function verifyLabel<L extends string>(ctor: Function, label?: L, opts?: SigilOp
   if (!label) {
     if (!autofillLabels)
       throw new Error(
-        `[Sigil Error] Class '${ctor.name}' is not sigilified with 'autofillLabels' setted to 'false', Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'`
+        `[Sigil Error] Class '${ctor?.name}' is not sigilified with 'autofillLabels' setted to 'false', Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'`
       );
     return;
   }
@@ -178,22 +183,23 @@ function verifyLabel<L extends string>(ctor: Function, label?: L, opts?: SigilOp
     if (labelValidation instanceof RegExp) valid = labelValidation.test(label);
     else valid = labelValidation(label);
 
-    if (process.env.NODE_ENV !== 'production')
-      if (!valid)
-        throw new Error(
-          `[Sigil Error] Invalid identity label "${label}". Make sure that supplied label matches validation regex or function`
-        );
+    if (!valid)
+      throw new Error(
+        `[Sigil Error] Invalid identity label '${label}'. Make sure that supplied label matches validation regex or function`
+      );
   }
 }
 
-if (!(globalThis as any).__SigilabelCounter) (globalThis as any).__SigilabelCounter = 0;
+function initCounter() {
+  if (!(globalThis as any).__SigilabelCounter) (globalThis as any).__SigilabelCounter = 0;
+}
 
 function generateRandomLabel(ctor: Function): string {
-  const namePart = ctor && typeof ctor.name === 'string' && ctor.name.length ? ctor.name : 'C';
+  initCounter();
 
   const counter = (globalThis as any).__SigilabelCounter++;
   const time = Date.now().toString(36);
   const rand = Math.random().toString(36).slice(2, 6);
 
-  return `${AUTO_LABEL_PREFEX}:${namePart}:${time}:${counter.toString(36)}:${rand}`;
+  return `${AUTO_LABEL_PREFEX}:${ctor?.name}:${time}:${counter.toString(36)}:${rand}`;
 }

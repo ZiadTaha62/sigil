@@ -11,10 +11,9 @@ import type { SigilOptions } from './options';
 export function WithSigil(label: string, opts?: SigilOptions) {
   return function (value: Function, context: any) {
     // Only apply to class declarations
-    if (context.kind !== 'class') return;
     if (!isSigilCtor(value))
       throw new Error(
-        `[Sigil Error] 'WithSigil' decorator accept only Sigil classes but used on class ${value.name}`
+        `[Sigil Error] 'WithSigil' decorator accept only Sigil classes but used on class '${value.name}'`
       );
     if (hasOwnSigil(value))
       throw new Error(

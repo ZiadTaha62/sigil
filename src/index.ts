@@ -4,5 +4,12 @@ export { withSigil } from './hof';
 export { isSigilCtor, isSigilInstance } from './helpers';
 export { Sigilify, SigilifyAbstract } from './mixin';
 export { updateSigilOptions, DEFAULT_LABEL_REGEX, type SigilOptions } from './options';
-export type { ISigilInstance, ISigilStatic, ISigil, SigilOf, ExtendSigil } from './types';
-export { sigil } from './types';
+export type {
+  ISigilInstance,
+  ISigilStatic,
+  ISigil,
+  SigilOf,
+  ExtendSigil,
+  GetPrototype,
+  sigil,
+} from './types';
