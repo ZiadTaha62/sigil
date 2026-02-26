@@ -45,6 +45,7 @@
 - [Minimal mode](#minimal-mode)
 - [Strict mode](#strict-mode)
 - [Benchmarks](#benchmarks)
+- [Bundle Size](#bundle-size)
 - [Tests](#tests)
 - [Contributing](#contributing)
 - [License](#license)
@@ -371,7 +372,15 @@ Now if you forgot to pass a label error is thrown at the moment you create class
 ## Benchmarks
 
 Sigil is built for **real-world performance**. Below are the latest micro-benchmark results (run on **Node.js v20.12.0**).
-To run benchmarks on your machine fetch source code from [github](https://github.com/ZiadTaha62/sigil), install dev dependencies then run `npm run bench` in your console.
+
+**Running Tests**
+
+To run benchmarks on your machine fetch source code from [github](https://github.com/ZiadTaha62/sigil) then:
+
+```bash
+npm install
+npm run bench
+```
 
 ### 1. Runtime Type Checking
 
@@ -384,8 +393,7 @@ To run benchmarks on your machine fetch source code from [github](https://github
 | 15    | 0.000058 ms           | 0.000063 ms       | **0.000051 ms**       | 0.000069 ms          | **0.000053 ms**          |
 
 > **Key takeaway**:  
-> `isOfType` has **practically the same performance as native `instanceof`**, slightly **slower** on static calls and slightly **faster** on the instance side.
-> `isExactType` adds only a tiny negligible cost and remains extremely fast even on deep hierarchies.
+> `isOfType` & `isExactType` has **practically the same performance as native `instanceof`**, slightly **slower** on static calls and slightly **faster** on the instance side.
 
 ### 2. Class Definition & Instance Creation
 
@@ -406,10 +414,20 @@ To run benchmarks on your machine fetch source code from [github](https://github
 > - Class definition is a **one-time cost** at module load time. Even at depth 10 the cost stays well under 1 ms per class.
 > - Instance creation adds a small fixed overhead of ~0.4–0.6 µs per object, which becomes completely negligible as your classes grow in size and complexity.
 
-### Bundle Size
+---
 
-**less than 1.5 KB** (minified + Brotli, including all dependencies)
-To verify bundle size fetch source code from [github](https://github.com/ZiadTaha62/sigil), install dev dependencies then run `npm run size` in your console.
+## Bundle Size
+
+**Less than 1.5 KB (1.44 KB)** minified + Brotli, including all dependencies
+
+**Running Tests**
+
+To verify bundle size fetch source code from [github](https://github.com/ZiadTaha62/sigil) then:
+
+```bash
+npm install
+npm run size
+```
 
 This makes Sigil one of the smallest full-featured solutions for nominal typing + reliable runtime identity.
 
@@ -432,17 +450,18 @@ We maintain **100%** test coverage across the entire codebase to ensure that run
 
 **Key Test Areas**
 
-**Mixins, Decorators & HOFs:** Validating `Sigilify`, `WithSigil` and `withSigil` behaviors.
-**Sigil methods:** Ensuring `Sigil` class methods (e.g. `SigilLabel`, `getSigilLabel`) work as expected.
-**Lazy Evaluation:** Ensuring metadata is attached before being accessed via `Sigil` methods.
-**Lineage:** Verifying that `isOfType` and `isExactType` work across complex inheritance chains.
-**Error Handling:** Strict validation for all errors and throws.
+- **Mixins, Decorators & HOFs:** Validating `Sigilify`, `WithSigil` and `withSigil` behaviors.
+- **Sigil methods:** Ensuring `Sigil` class methods (e.g. `SigilLabel`, `getSigilLabel`) work as expected.
+- **Lazy Evaluation:** Ensuring metadata is attached before being accessed via `Sigil` methods.
+- **Lineage:** Verifying that `isOfType` and `isExactType` work across complex inheritance chains.
+- **Error Handling:** Strict validation for all errors and throws.
 
 **Running Tests**
 
-To run the test suite locally and generate a coverage report, use:
+To run the test suite locally and generate a coverage report, fetch source code from [github](https://github.com/ZiadTaha62/sigil) then:
 
 ```bash
+npm install
 npm run test:unit
 ```
 

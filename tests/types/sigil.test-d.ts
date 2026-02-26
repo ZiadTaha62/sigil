@@ -1,5 +1,5 @@
 import { expectAssignable } from 'tsd';
-import { Sigil, sigil, type ExtendSigil } from '../../src';
+import { Sigil, type sigil, type ExtendSigil } from '../../src';
 
 // Class X extends Sigil
 class X extends Sigil {

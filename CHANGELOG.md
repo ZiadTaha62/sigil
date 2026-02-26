@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.3] - 2026-02-26
+
+### Changed
+
+- Patched type tests where `sigil` should be imported as type only
+
 ## [3.1.2] - 2026-02-26
 
 ### Changed
