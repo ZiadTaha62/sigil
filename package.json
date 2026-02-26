@@ -1,6 +1,6 @@
 {
   "name": "@vicin/sigil",
-  "version": "3.1.3",
+  "version": "3.1.4",
   "description": "Sigil gives you the power of safe cross-bundle class instances checks and simple class nominal typing if needed",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
