@@ -10,7 +10,6 @@ import type { SigilOptions } from './options';
  */
 export function WithSigil(label: string, opts?: SigilOptions) {
   return function (value: Function, context: any) {
-    // Only apply to class declarations
     if (!isSigilCtor(value))
       throw new Error(
         `[Sigil Error] 'WithSigil' decorator accept only Sigil classes but used on class '${value.name}'`

@@ -1,3 +1,7 @@
+/** -----------------------------------------
+ *  Types
+ * ----------------------------------------- */
+
 /**
  * Configuration options for the Sigil library.
  *
@@ -23,7 +27,7 @@ export interface SigilOptions {
 }
 
 /** -----------------------------------------
- *  Main options object
+ *  Internal options object
  * ----------------------------------------- */
 
 /**
@@ -35,6 +39,10 @@ export const OPTIONS: Required<SigilOptions> = {
   labelValidation: null,
   autofillLabels: true,
 };
+
+/** -----------------------------------------
+ *  Update options
+ * ----------------------------------------- */
 
 /**
  * Update runtime options for the Sigil library.
@@ -68,4 +76,7 @@ export const updateSigilOptions = (opts: SigilOptions): void => {
  *
  * It's advised to use this regex in 'SigilOptions.labelValidation'.
  */
-export const DEFAULT_LABEL_REGEX = /^@[\w-]+(?:\/[\w-]+)*\.[A-Z][A-Za-z0-9]*$/;
+export const RECOMMENDED_LABEL_REGEX = /^@[\w-]+(?:\/[\w-]+)*\.[A-Z][A-Za-z0-9]*$/;
+
+/** @deprecated - Use 'RECOMMENDED_LABEL_REGEX' instead, will be removed in v4 */
+export const DEFAULT_LABEL_REGEX = RECOMMENDED_LABEL_REGEX;

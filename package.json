@@ -81,7 +81,7 @@
   "size-limit": [
     {
       "path": "dist/index.mjs",
-      "limit": "1.5 KB"
+      "limit": "1.6 KB"
     }
   ]
 }

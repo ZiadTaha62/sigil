@@ -21,29 +21,17 @@ export function handleSigil(ctor: Function, label?: string, opts?: SigilOptions)
   verifyLabel(ctor, label, opts);
 
   // check ancestors to ensure that every label in sigil chain in unique
-  const ancLabelsMap = handleAncestors(ctor, opts);
-
-  // make sure that newly passed label is unique as well
-  if (label && ancLabelsMap.has(label))
-    throw new Error(
-      `[Sigil Error] Attempt to assign label '${label}' to class '${ctor?.name}' but label is already used by parent '${ancLabelsMap.get(label)}', Make sure that every class has a unique label`
-    );
+  handleAncestors(ctor, opts);
 
   // handle current class
   sigilify(ctor, label ?? generateRandomLabel(ctor));
-
-  // mark as handled
-  handledCtors.add(ctor);
 }
 
 /** -----------------------------------------
  *  Generic helpers
  * ----------------------------------------- */
 
-function handleAncestors(
-  ctor: Function,
-  opts?: Pick<SigilOptions, 'autofillLabels'>
-): Map<string, string> {
+function handleAncestors(ctor: Function, opts?: Pick<SigilOptions, 'autofillLabels'>): void {
   // handle options
   const autofillLabels = opts?.autofillLabels ?? OPTIONS.autofillLabels;
 
@@ -66,15 +54,13 @@ function handleAncestors(
     if (labelOwner.has(l)) {
       if (!autofillLabels)
         throw new Error(
-          `[Sigil Error] Class '${a.name}' is not sigilified with 'autofillLabels' setted to 'false', Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'`
+          `[Sigil Error] Class '${a.name}' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'`
         );
       sigilify(a, generateRandomLabel(a));
     }
     // register current label with class name
     labelOwner.set(labelOf(a)!, a.name);
   }
-
-  return labelOwner;
 }
 
 function sigilify(ctor: Function, label: string) {
@@ -119,10 +105,13 @@ function sigilify(ctor: Function, label: string) {
       enumerable: false,
       writable: false,
     });
+  // Add label to registered labels and mark as handled
+  getLabelRegistry().add(label);
+  handledCtors.add(ctor);
 }
 
 /** -----------------------------------------
- *  Introspection helpers
+ *  Inspection helpers
  * ----------------------------------------- */
 
 /**
@@ -158,10 +147,57 @@ function lineageOf(ctor: Function): Set<string> | undefined {
   return ctor.prototype[__LINEAGE__];
 }
 
+/**
+ * Helper function to get labels registered by 'Sigil'
+ *
+ * @param includeAuto - Flag to include auto-generated labels as well, default is 'false'.
+ * @returns Sigil labels registered
+ */
+export function getSigilLabels(includeAuto: boolean = false): string[] {
+  const labels = getLabelRegistry().labels();
+  if (includeAuto) return labels;
+  return labels.filter((l) => !l.startsWith(AUTO_LABEL_PREFEX));
+}
+
 /** -----------------------------------------
  *  Label helpers
  * ----------------------------------------- */
 
+/** Exposed methods of global label registry */
+interface LabelRegistry {
+  has: (label: string) => boolean;
+  add: (label: string) => void;
+  labels: () => string[];
+  enc: () => number;
+}
+
+/** Internal helper to get (or init then get) global label registry */
+function getLabelRegistry(): LabelRegistry {
+  if ('__labelRegistry__' in globalThis) return (globalThis as any).__labelRegistry__;
+
+  const labelSet = new Set<string>();
+  let count = 0;
+
+  const labelRegistry: LabelRegistry = {
+    has: (label: string) => labelSet.has(label),
+    add: (label: string) => labelSet.add(label),
+    labels: () => [...labelSet],
+    enc: () => ++count,
+  };
+
+  Object.freeze(labelRegistry);
+
+  Object.defineProperty(globalThis, '__labelRegistry__', {
+    value: labelRegistry,
+    writable: false,
+    configurable: false,
+    enumerable: false,
+  });
+
+  return labelRegistry;
+}
+
+/** Internal helper to validate passed label */
 function verifyLabel<L extends string>(ctor: Function, label?: L, opts?: SigilOptions): void {
   // handle option
   const labelValidation = opts?.labelValidation ?? OPTIONS.labelValidation;
@@ -170,13 +206,18 @@ function verifyLabel<L extends string>(ctor: Function, label?: L, opts?: SigilOp
   if (!label) {
     if (!autofillLabels)
       throw new Error(
-        `[Sigil Error] Class '${ctor?.name}' is not sigilified with 'autofillLabels' setted to 'false', Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'`
+        `[Sigil Error] Class '${ctor?.name}' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'`
       );
     return;
   }
 
   if (label.startsWith(AUTO_LABEL_PREFEX))
     throw new Error(`'${AUTO_LABEL_PREFEX}' is a prefex reserved by the library`);
+
+  if (getLabelRegistry().has(label))
+    throw new Error(
+      `[Sigil Error] Passed label '${label}' to class '${ctor?.name}' is re-used, passed labels must be unique`
+    );
 
   if (labelValidation) {
     let valid: boolean;
@@ -185,21 +226,12 @@ function verifyLabel<L extends string>(ctor: Function, label?: L, opts?: SigilOp
 
     if (!valid)
       throw new Error(
-        `[Sigil Error] Invalid identity label '${label}'. Make sure that supplied label matches validation regex or function`
+        `[Sigil Error] Invalid Sigil label '${label}'. Make sure that supplied label matches validation regex or function`
       );
   }
 }
 
-function initCounter() {
-  if (!(globalThis as any).__SigilabelCounter) (globalThis as any).__SigilabelCounter = 0;
-}
-
+/** Internal helper to generate random label */
 function generateRandomLabel(ctor: Function): string {
-  initCounter();
-
-  const counter = (globalThis as any).__SigilabelCounter++;
-  const time = Date.now().toString(36);
-  const rand = Math.random().toString(36).slice(2, 6);
-
-  return `${AUTO_LABEL_PREFEX}:${ctor?.name}:${time}:${counter.toString(36)}:${rand}`;
+  return `${AUTO_LABEL_PREFEX}:${ctor?.name}:${getLabelRegistry().enc()}:${Math.random().toString(36).slice(2, 10)}`;
 }

@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.0] - 2026-02-27
+
+### Added
+
+- `RECOMMENDED_LABEL_REGEX` is the same as `DEFAULT_LABEL_REGEX` but renamed for clarity
+- `getSigilLabels` to get registered sigil labels
+
+### Deprecated
+
+- `DEFAULT_LABEL_REGEX` is deprecated and will be removed in v4, use `RECOMMENDED_LABEL_REGEX` instead
+
 ## [3.1.4] - 2026-02-26
 
 ### Changed

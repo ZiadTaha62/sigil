@@ -157,7 +157,7 @@ export function Sigilify<B extends Constructor, L extends string>(
     /**
      * Returns the identity sigil label of this instance's constructor.
      *
-     * @returns The label string if passed (e.g. '@scope/pkg.ClassName'), random label if not passed (e.g. '@Sigil-auto:ClassName:mm2gkdwn:0:g1sq').
+     * @returns The label string if passed (e.g. '@scope/pkg.ClassName'), random label if not passed (e.g. '@Sigil-auto:ClassName:1:pnf11bgl').
      */
     getSigilLabel(): string {
       return (this as any)[__LABEL__];
@@ -341,7 +341,7 @@ export function SigilifyAbstract<B extends ConstructorAbstract, L extends string
     /**
      * Returns the identity sigil label of this instance's constructor.
      *
-     * @returns The label string if passed (e.g. '@scope/pkg.ClassName'), random label if not passed (e.g. '@Sigil-auto:ClassName:mm2gkdwn:0:g1sq').
+     * @returns The label string if passed (e.g. '@scope/pkg.ClassName'), random label if not passed (e.g. '@Sigil-auto:ClassName:1:pnf11bgl').
      */
     getSigilLabel(): string {
       return (this as any)[__LABEL__];

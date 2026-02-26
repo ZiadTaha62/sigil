@@ -16,14 +16,10 @@
 
 - ✅ **Drop-in `instanceof` replacement** that works across bundles, HMR, and monorepos, Also can check for **exact class instance**
 - ✅ **Simple nominal typing** with just one line of code for each class
-- ✅ **Tiny less than 1.5 KB minified and brotlied** measured using [size-limit](https://www.npmjs.com/package/size-limit)
+- ✅ **Tiny less than 1.6 KB minified and brotlied** measured using [size-limit](https://www.npmjs.com/package/size-limit)
 - ✅ **Performant as native instanceof** but with guaranteed checks
 - ✅ **Test coverage is 100%** to ensure that runtime remains consistent and predictable
-
-## Important Notes Before Using
-
-- **Explicit class identity:** `Sigil` uses passed class label to identify classes, which means that the developer is responsible for uniqueness of classes by passing unique labels.
-- **Simple instanceof Fix:** If you just need runtime checks without extras, see the [minimal mode](#minimal-mode).
+- ✅ **Safe with strict rules to ensure uniqueness of labels**, if duplicated label is passed and error is thrown immediately
 
 ---
 
@@ -40,6 +36,7 @@
   - [Purpose and Origins](#purpose-and-origins)
   - [Implementation Mechanics](#implementation-mechanics)
   - [Inheritance example](#inheritance-example)
+  - [Errors & throws](#errors--throws)
 - [API reference](#api-reference)
 - [Options & configuration](#options--configuration)
 - [Minimal mode](#minimal-mode)
@@ -144,7 +141,7 @@ import { Sigil } from '@vicin/sigil';
 class MyBaseClass extends Sigil {} // <-- add 'extends Sigil' here
 ```
 
-Congratulations — you’ve opted into `Sigil` and you can start replacing `instanceof` with `isOfType`, however there is more to add to your system, check [Core concepts](#core-concepts) for more.
+Congratulations — you’ve opted into `Sigil` and you can start replacing `instanceof` with `isOfType()` / `isExactType()`, however there is more to add to your system, check [Core concepts](#core-concepts) for more.
 
 ---
 
@@ -152,7 +149,7 @@ Congratulations — you’ve opted into `Sigil` and you can start replacing `ins
 
 ### Terminology
 
-- **Label**: An identity (string) such as `@scope/pkg.ClassName`, but can be random string (e.g. `@Sigil-auto:ClassName:mm2gkdwn:0:g1sq`) if no label passed.
+- **Label**: An identity (string) such as `@scope/pkg.ClassName`, must be unique for each `Sigil` class otherwise error is thrown.
 - **EffectiveLabel:** A human-readable (string) such as `@scope/pkg.ClassName`, if no label is passed it inherit the last defined label.
 - **isOfType**: Takes object argument and check if this object is an instance of calling class or it's children. Can be called from class instances as well.
 - **isExactType**: Takes object argument and check if this object is an instance of calling class only. Can be called from class instances as well.
@@ -253,6 +250,84 @@ type test1 = Admin extends User ? true : false; // true
 type test2 = User extends Admin ? true : false; // false
 ```
 
+### Errors & throws
+
+Run-time errors that can be thrown by `Sigil`:
+
+#### Double `Sigilify() / SigilifyAbstract()`
+
+```ts
+class A {}
+const B = Sigilify(A, 'A');
+const C = Sigilify(B, 'B'); // Throws: [Sigil Error] Class 'Sigilified' with label 'A' is already sigilified
+
+abstract class AbsA {}
+const AbsB = SigilifyAbstract(AbsA, 'AbsA');
+const AbsC = SigilifyAbstract(AbsB, 'AbsB'); // Throws: [Sigil Error] Class 'Sigilified' with label 'AbsA' is already sigilified
+```
+
+#### `@WithSigil() / withSigil()` on non-Sigil class
+
+```ts
+@WithSigil('A')
+class A {} // Throws: [Sigil Error] 'WithSigil' decorator accept only Sigil classes but used on class 'A'
+
+withSigil(class A {}); // Throws: [Sigil Error] 'WithSigil' decorator accept only Sigil classes but used on class 'A'
+```
+
+#### Double `@WithSigil() / withSigil()`
+
+```ts
+@WithSigil('B')
+@WithSigil('A')
+class A extends Sigil {} // Throws: [Sigil Error] Class 'A' with label 'A' is already sigilified
+
+class _A extends Sigil {}
+withSigil(withSigil(_A, 'A'), 'B'); // Throws: [Sigil Error] Class 'A' with label 'A' is already sigilified
+```
+
+#### No label is passed with `autofillLabels: false`
+
+```ts
+updateSigilOptions({ autofillLabels: false });
+
+class A extends Sigil {}
+new A(); // Throws: [Sigil Error] Class 'A' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'
+```
+
+#### Same label is passed twice to `Sigil`
+
+```ts
+@WithSigil('Label')
+class A extends Sigil {}
+
+@WithSigil('Label')
+class B extends Sigil {} // Throws: [Sigil Error] Passed label 'Label' to class 'B' is re-used, passed labels must be unique
+```
+
+#### Invalid label format
+
+```ts
+updateSigilOptions({ labelValidation: RECOMMENDED_LABEL_REGEX });
+
+@WithSigil('InvalidLabel')
+class A extends Sigil {} // Throws: [Sigil Error] Invalid Sigil label 'InvalidLabel'. Make sure that supplied label matches validation regex or function
+```
+
+#### Using '@Sigil-auto' prefix
+
+```ts
+@WithSigil('@Sigil-auto:label')
+class X extends Sigil {} // Throws: '@Sigil-auto' is a prefex reserved by the library
+```
+
+#### Invalid options passed to `updateOptions`
+
+```ts
+updateSigilOptions({ autofillLabels: {} as any }); // Throws: 'updateSigilOptions.autofillLabels' must be boolean
+updateSigilOptions({ labelValidation: 123 as any }); // Throws: 'updateSigilOptions.labelValidation' must be null, function or RegExp
+```
+
 ---
 
 ## API reference
@@ -276,10 +351,11 @@ type test2 = User extends Admin ? true : false; // false
 - **Helpers:**
   - `isSigilCtor(ctor)`
   - `isSigilInstance(inst)`
+  - `getSigilLabels(includeAuto?)`
 
 - **Options:**
   - `updateSigilOptions(opts)`
-  - `DEFAULT_LABEL_REGEX`
+  - `RECOMMENDED_LABEL_REGEX`
 
 - **Types:**
   - `ISigil<Label, ParentSigil?>`
@@ -300,8 +376,9 @@ type test2 = User extends Admin ? true : false; // false
 - `withSigil(Class, label, opts?)`: HOF that validates and decorates an existing class constructor.
 - `isSigilCtor(value)`: `true` if `value` is a `Sigil` constructor.
 - `isSigilInstance(value)`: `true` if `value` is an instance of a `Sigil` constructor.
+- `getSigilLabels(includeAuto?)`: Get all `Sigil` labels registered, can include auto-generated labels as well.
 - `updateSigilOptions(opts)`: change global runtime options of `Sigil` library (e.g., `autofillLabels`).
-- `DEFAULT_LABEL_REGEX`: regex that ensures structure of `@scope/package.ClassName` to all labels, it's advised to use it as your `SigilOptions.labelValidation`
+- `RECOMMENDED_LABEL_REGEX`: regex that ensures structure of `@scope/package.ClassName` to all labels, it's advised to use it as your `SigilOptions.labelValidation`
 
 ### Instance & static helpers provided by Sigilified constructors
 
@@ -418,7 +495,9 @@ npm run bench
 
 ## Bundle Size
 
-**Less than 1.5 KB (1.44 KB)** minified + Brotli, including all dependencies
+**Less than 1.6 KB (1.51 KB)** (minified + Brotli, including all dependencies)
+
+This makes Sigil one of the smallest full-featured solutions for nominal typing + reliable runtime identity.
 
 **Running Tests**
 
@@ -428,8 +507,6 @@ To verify bundle size fetch source code from [github](https://github.com/ZiadTah
 npm install
 npm run size
 ```
-
-This makes Sigil one of the smallest full-featured solutions for nominal typing + reliable runtime identity.
 
 ---
 

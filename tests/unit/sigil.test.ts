@@ -9,21 +9,69 @@ import {
   isSigilInstance,
   updateSigilOptions,
   DEFAULT_LABEL_REGEX,
+  RECOMMENDED_LABEL_REGEX,
+  getSigilLabels,
 } from '../../src';
+
+let labels = new Set<string>();
+
+function generateRandomLabel(): string {
+  const label = Math.random().toString(36).slice(2, 10);
+  if (labels.has(label)) return generateRandomLabel();
+  labels.add(label);
+  return label;
+}
 
 describe('Sigil core runtime behavior', () => {
   beforeEach(() => {
-    updateSigilOptions({
-      labelValidation: null,
-      autofillLabels: true,
-    });
+    updateSigilOptions({ autofillLabels: true, labelValidation: null });
   });
 
   afterEach(() => {
-    updateSigilOptions({
-      labelValidation: null,
-      autofillLabels: true,
-    });
+    updateSigilOptions({ autofillLabels: true, labelValidation: null });
+  });
+
+  /** ----------------------
+   *  Inspection
+   * ---------------------- */
+
+  test("[Inspection] 'getSigilLabels'", () => {
+    @WithSigil('X')
+    class X extends Sigil {} // <-- explicit label
+    class Y extends Sigil {} // <-- random generated label
+    new Y(); // <-- Evaluate Y ( more info in [Lazy evaluation] )
+
+    expect(getSigilLabels()).toEqual(['Sigil', 'SigilError', 'X']);
+    expect(getSigilLabels(true)[3]).toMatch('@Sigil-auto:');
+  });
+
+  test("[Inspection] 'isSigilCtor' and 'isSigilInstance' helpers", () => {
+    @WithSigil(generateRandomLabel())
+    class X extends Sigil {}
+    class Y {}
+
+    const x = new X();
+    const y = new Y();
+
+    expect(isSigilCtor(X)).toBe(true);
+    expect(isSigilInstance(x)).toBe(true);
+
+    // Plain object is not a sigil instance
+    expect(isSigilCtor(Y)).toBe(false);
+    expect(isSigilInstance(y)).toBe(false);
+  });
+
+  test('[Inspection] SigilLabel & SigilEffectiveLabel', () => {
+    const label = '@test/[Inspection] SigilLabel & SigilEffectiveLabel';
+
+    @WithSigil(label)
+    class Base extends Sigil {}
+    class Sub extends Base {}
+
+    expect(Base.SigilLabel).toBe(label);
+    expect(Sub.SigilLabel).toMatch('@Sigil-auto:');
+    expect(Base.SigilEffectiveLabel).toBe(label);
+    expect(Sub.SigilEffectiveLabel).toBe(label);
   });
 
   /** ----------------------
@@ -31,22 +79,25 @@ describe('Sigil core runtime behavior', () => {
    * ---------------------- */
 
   test('[Mixin] Sigilify factory returns a sigilified constructor', () => {
+    const label = '@test/[Mixin] Ctor';
+    const absLabel = '@test/[Mixin] AbsCtor';
+
     class Class {}
-    const Ctor = Sigilify(Class, '@test/Ctor');
+    const Ctor = Sigilify(Class, label);
 
     abstract class AbsClass {}
-    const AbsCtor = SigilifyAbstract(AbsClass, '@test/AbsCtor');
+    const AbsCtor = SigilifyAbstract(AbsClass, absLabel);
 
     expect(Ctor).toBeDefined();
     expect(AbsCtor).toBeDefined();
-    expect(Ctor.SigilLabel).toBe('@test/Ctor');
-    expect(AbsCtor.SigilLabel).toBe('@test/AbsCtor');
-    expect(Ctor.SigilEffectiveLabel).toBe('@test/Ctor');
-    expect(AbsCtor.SigilEffectiveLabel).toBe('@test/AbsCtor');
-    expect(Ctor.SigilLabelLineage).toEqual(['Sigil', '@test/Ctor']);
-    expect(AbsCtor.SigilLabelLineage).toEqual(['Sigil', '@test/AbsCtor']);
-    expect(Ctor.SigilLabelSet).toEqual(new Set(['Sigil', '@test/Ctor']));
-    expect(AbsCtor.SigilLabelSet).toEqual(new Set(['Sigil', '@test/AbsCtor']));
+    expect(Ctor.SigilLabel).toBe(label);
+    expect(AbsCtor.SigilLabel).toBe(absLabel);
+    expect(Ctor.SigilEffectiveLabel).toBe(label);
+    expect(AbsCtor.SigilEffectiveLabel).toBe(absLabel);
+    expect(Ctor.SigilLabelLineage).toEqual(['Sigil', label]);
+    expect(AbsCtor.SigilLabelLineage).toEqual(['Sigil', absLabel]);
+    expect(Ctor.SigilLabelSet).toEqual(new Set(['Sigil', label]));
+    expect(AbsCtor.SigilLabelSet).toEqual(new Set(['Sigil', absLabel]));
 
     const inst = new Ctor();
     //@ts-expect-error - Extending abstract class
@@ -54,14 +105,14 @@ describe('Sigil core runtime behavior', () => {
 
     expect(inst).toBeDefined();
     expect(absInst).toBeDefined();
-    expect(inst.getSigilLabel()).toBe('@test/Ctor');
-    expect(absInst.getSigilLabel()).toBe('@test/AbsCtor');
-    expect(inst.getSigilEffectiveLabel()).toBe('@test/Ctor');
-    expect(absInst.getSigilEffectiveLabel()).toBe('@test/AbsCtor');
-    expect(inst.getSigilLabelLineage()).toEqual(['Sigil', '@test/Ctor']);
-    expect(absInst.getSigilLabelLineage()).toEqual(['Sigil', '@test/AbsCtor']);
-    expect(inst.getSigilLabelSet()).toEqual(new Set(['Sigil', '@test/Ctor']));
-    expect(absInst.getSigilLabelSet()).toEqual(new Set(['Sigil', '@test/AbsCtor']));
+    expect(inst.getSigilLabel()).toBe(label);
+    expect(absInst.getSigilLabel()).toBe(absLabel);
+    expect(inst.getSigilEffectiveLabel()).toBe(label);
+    expect(absInst.getSigilEffectiveLabel()).toBe(absLabel);
+    expect(inst.getSigilLabelLineage()).toEqual(['Sigil', label]);
+    expect(absInst.getSigilLabelLineage()).toEqual(['Sigil', absLabel]);
+    expect(inst.getSigilLabelSet()).toEqual(new Set(['Sigil', label]));
+    expect(absInst.getSigilLabelSet()).toEqual(new Set(['Sigil', absLabel]));
   });
 
   /** ----------------------
@@ -69,39 +120,43 @@ describe('Sigil core runtime behavior', () => {
    * ---------------------- */
 
   test("[Decorators and HOFs] 'WithSigil' decorator attaches runtime metadata", () => {
-    @WithSigil('@test/User')
+    const label = "@test/[Decorators and HOFs] 'WithSigil'";
+
+    @WithSigil(label)
     class User extends Sigil {}
 
     expect(User).toBeDefined();
-    expect(User.SigilLabel).toBe('@test/User');
-    expect(User.SigilEffectiveLabel).toBe('@test/User');
-    expect(User.SigilLabelLineage).toEqual(['Sigil', '@test/User']);
-    expect(User.SigilLabelSet).toEqual(new Set(['Sigil', '@test/User']));
+    expect(User.SigilLabel).toBe(label);
+    expect(User.SigilEffectiveLabel).toBe(label);
+    expect(User.SigilLabelLineage).toEqual(['Sigil', label]);
+    expect(User.SigilLabelSet).toEqual(new Set(['Sigil', label]));
 
     const u = new User();
     expect(u).toBeDefined();
-    expect(u.getSigilLabel()).toBe('@test/User');
-    expect(u.getSigilEffectiveLabel()).toBe('@test/User');
-    expect(u.getSigilLabelLineage()).toEqual(['Sigil', '@test/User']);
-    expect(u.getSigilLabelSet()).toEqual(new Set(['Sigil', '@test/User']));
+    expect(u.getSigilLabel()).toBe(label);
+    expect(u.getSigilEffectiveLabel()).toBe(label);
+    expect(u.getSigilLabelLineage()).toEqual(['Sigil', label]);
+    expect(u.getSigilLabelSet()).toEqual(new Set(['Sigil', label]));
   });
 
   test("[Decorators and HOFs] 'withSigil' HOF attaches runtime metadata", () => {
-    class _User extends Sigil {}
-    const User = withSigil(_User, '@test/User');
+    const label = "@test/[Decorators and HOFs] 'withSigil'";
+
+    @WithSigil(label)
+    class User extends Sigil {}
 
     expect(User).toBeDefined();
-    expect(User.SigilLabel).toBe('@test/User');
-    expect(User.SigilEffectiveLabel).toBe('@test/User');
-    expect(User.SigilLabelLineage).toEqual(['Sigil', '@test/User']);
-    expect(User.SigilLabelSet).toEqual(new Set(['Sigil', '@test/User']));
+    expect(User.SigilLabel).toBe(label);
+    expect(User.SigilEffectiveLabel).toBe(label);
+    expect(User.SigilLabelLineage).toEqual(['Sigil', label]);
+    expect(User.SigilLabelSet).toEqual(new Set(['Sigil', label]));
 
     const u = new User();
     expect(u).toBeDefined();
-    expect(u.getSigilLabel()).toBe('@test/User');
-    expect(u.getSigilEffectiveLabel()).toBe('@test/User');
-    expect(u.getSigilLabelLineage()).toEqual(['Sigil', '@test/User']);
-    expect(u.getSigilLabelSet()).toEqual(new Set(['Sigil', '@test/User']));
+    expect(u.getSigilLabel()).toBe(label);
+    expect(u.getSigilEffectiveLabel()).toBe(label);
+    expect(u.getSigilLabelLineage()).toEqual(['Sigil', label]);
+    expect(u.getSigilLabelSet()).toEqual(new Set(['Sigil', label]));
   });
 
   /** ----------------------
@@ -109,10 +164,10 @@ describe('Sigil core runtime behavior', () => {
    * ---------------------- */
 
   test("[Lazy evaluation] Normal, evaluation on '@WithSigil', autofillLabels true", () => {
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends Sigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
-    @WithSigil('C')
+    @WithSigil(generateRandomLabel())
     class C extends B {} // <-- label passed, evaluate C & B
 
     // There is no expect to do here but evaluation will be prominent when autofillLabels is set to false
@@ -121,25 +176,25 @@ describe('Sigil core runtime behavior', () => {
   test("[Lazy evaluation] Normal, evaluation on '@WithSigil', autofillLabels false", () => {
     updateSigilOptions({ autofillLabels: false });
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends Sigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
 
     // Error is thrown the moment whe use '@WithSigil'
     expect(() => {
-      @WithSigil('C')
+      @WithSigil(generateRandomLabel())
       class C extends B {} // <-- label passed, evaluate C & B
     }).toThrow(
-      "[Sigil Error] Class 'B' is not sigilified with 'autofillLabels' setted to 'false', Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
+      "[Sigil Error] Class 'B' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
     );
   });
 
   test("[Lazy evaluation] Normal, evaluation on 'withSigil', autofillLabels true", () => {
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends Sigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class _C extends B {} // <-- label passed, evaluate C & B
-    const C = withSigil(_C, 'C'); // <-- label passed, evaluate C & B
+    const C = withSigil(_C, generateRandomLabel()); // <-- label passed, evaluate C & B
 
     // There is no expect to do here but evaluation will be prominent when autofillLabels is set to false
   });
@@ -147,21 +202,21 @@ describe('Sigil core runtime behavior', () => {
   test("[Lazy evaluation] Normal, evaluation on 'withSigil', autofillLabels false", () => {
     updateSigilOptions({ autofillLabels: false });
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends Sigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
 
     // Error is thrown the moment whe use '@WithSigil'
     expect(() => {
       class _C extends B {}
-      const C = withSigil(_C, 'C'); // <-- label passed, evaluate C & B
+      const C = withSigil(_C, generateRandomLabel()); // <-- label passed, evaluate C & B
     }).toThrow(
-      "[Sigil Error] Class 'B' is not sigilified with 'autofillLabels' setted to 'false', Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
+      "[Sigil Error] Class 'B' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
     );
   });
 
   test("[Lazy evaluation] Normal, evaluation on 'new', autofillLabels true", () => {
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends Sigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -174,7 +229,7 @@ describe('Sigil core runtime behavior', () => {
   test("[Lazy evaluation] Normal, evaluation on 'new', autofillLabels false", () => {
     updateSigilOptions({ autofillLabels: false });
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends Sigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -183,12 +238,12 @@ describe('Sigil core runtime behavior', () => {
     expect(() => {
       const c = new C(); // <-- evaluate C & B
     }).toThrow(
-      "[Sigil Error] Class 'C' is not sigilified with 'autofillLabels' setted to 'false', Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
+      "[Sigil Error] Class 'C' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
     );
   });
 
   test("[Lazy evaluation] Normal, evaluation on static 'SigilLabel', autofillLabels true", () => {
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends Sigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -201,7 +256,7 @@ describe('Sigil core runtime behavior', () => {
   test("[Lazy evaluation] Normal, evaluation on static 'SigilLabel', autofillLabels false", () => {
     updateSigilOptions({ autofillLabels: false });
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends Sigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -210,12 +265,12 @@ describe('Sigil core runtime behavior', () => {
     expect(() => {
       C.SigilLabel; // <-- evaluate C & B
     }).toThrow(
-      "[Sigil Error] Class 'C' is not sigilified with 'autofillLabels' setted to 'false', Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
+      "[Sigil Error] Class 'C' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
     );
   });
 
   test("[Lazy evaluation] Normal, evaluation on static 'SigilEffectiveLabel', autofillLabels true", () => {
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends Sigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -228,7 +283,7 @@ describe('Sigil core runtime behavior', () => {
   test("[Lazy evaluation] Normal, evaluation on static 'SigilEffectiveLabel', autofillLabels false", () => {
     updateSigilOptions({ autofillLabels: false });
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends Sigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -237,12 +292,12 @@ describe('Sigil core runtime behavior', () => {
     expect(() => {
       C.SigilEffectiveLabel; // <-- evaluate C & B
     }).toThrow(
-      "[Sigil Error] Class 'C' is not sigilified with 'autofillLabels' setted to 'false', Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
+      "[Sigil Error] Class 'C' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
     );
   });
 
   test("[Lazy evaluation] Normal, evaluation on static 'SigilLabelLineage', autofillLabels true", () => {
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends Sigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -255,7 +310,7 @@ describe('Sigil core runtime behavior', () => {
   test("[Lazy evaluation] Normal, evaluation on static 'SigilLabelLineage', autofillLabels false", () => {
     updateSigilOptions({ autofillLabels: false });
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends Sigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -264,12 +319,12 @@ describe('Sigil core runtime behavior', () => {
     expect(() => {
       C.SigilLabelLineage; // <-- evaluate C & B
     }).toThrow(
-      "[Sigil Error] Class 'C' is not sigilified with 'autofillLabels' setted to 'false', Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
+      "[Sigil Error] Class 'C' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
     );
   });
 
   test("[Lazy evaluation] Normal, evaluation on static 'SigilLabelSet', autofillLabels true", () => {
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends Sigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -282,7 +337,7 @@ describe('Sigil core runtime behavior', () => {
   test("[Lazy evaluation] Normal, evaluation on static 'SigilLabelSet', autofillLabels false", () => {
     updateSigilOptions({ autofillLabels: false });
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends Sigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -291,12 +346,12 @@ describe('Sigil core runtime behavior', () => {
     expect(() => {
       C.SigilLabelSet; // <-- evaluate C & B
     }).toThrow(
-      "[Sigil Error] Class 'C' is not sigilified with 'autofillLabels' setted to 'false', Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
+      "[Sigil Error] Class 'C' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
     );
   });
 
   test("[Lazy evaluation] Normal, evaluation on static 'isOfType()', autofillLabels true", () => {
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends Sigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -309,7 +364,7 @@ describe('Sigil core runtime behavior', () => {
   test("[Lazy evaluation] Normal, evaluation on static 'isOfType()', autofillLabels false", () => {
     updateSigilOptions({ autofillLabels: false });
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends Sigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -318,12 +373,12 @@ describe('Sigil core runtime behavior', () => {
     expect(() => {
       C.isOfType({}); // <-- evaluate C & B
     }).toThrow(
-      "[Sigil Error] Class 'C' is not sigilified with 'autofillLabels' setted to 'false', Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
+      "[Sigil Error] Class 'C' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
     );
   });
 
   test("[Lazy evaluation] Normal, evaluation on static 'isExactType()', autofillLabels true", () => {
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends Sigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -336,7 +391,7 @@ describe('Sigil core runtime behavior', () => {
   test("[Lazy evaluation] Normal, evaluation on static 'isExactType()', autofillLabels false", () => {
     updateSigilOptions({ autofillLabels: false });
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends Sigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -345,18 +400,18 @@ describe('Sigil core runtime behavior', () => {
     expect(() => {
       C.isExactType({}); // <-- evaluate C & B
     }).toThrow(
-      "[Sigil Error] Class 'C' is not sigilified with 'autofillLabels' setted to 'false', Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
+      "[Sigil Error] Class 'C' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
     );
   });
 
   test("[Lazy evaluation] Abstract, evaluation on '@WithSigil', autofillLabels true", () => {
     abstract class Abs {}
-    const AbsSigil = SigilifyAbstract(Abs, 'AbsSigil');
+    const AbsSigil = SigilifyAbstract(Abs, generateRandomLabel());
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends AbsSigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
-    @WithSigil('C')
+    @WithSigil(generateRandomLabel())
     class C extends B {} // <-- label passed, evaluate C & B
 
     // There is no expect to do here but evaluation will be prominent when autofillLabels is set to false
@@ -366,30 +421,30 @@ describe('Sigil core runtime behavior', () => {
     updateSigilOptions({ autofillLabels: false });
 
     abstract class Abs {}
-    const AbsSigil = SigilifyAbstract(Abs, 'AbsSigil');
+    const AbsSigil = SigilifyAbstract(Abs, generateRandomLabel());
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends AbsSigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
 
     // Error is thrown the moment whe use '@WithSigil'
     expect(() => {
-      @WithSigil('C')
+      @WithSigil(generateRandomLabel())
       class C extends B {} // <-- label passed, evaluate C & B
     }).toThrow(
-      "[Sigil Error] Class 'B' is not sigilified with 'autofillLabels' setted to 'false', Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
+      "[Sigil Error] Class 'B' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
     );
   });
 
   test("[Lazy evaluation] Abstract, evaluation on 'withSigil', autofillLabels true", () => {
     abstract class Abs {}
-    const AbsSigil = SigilifyAbstract(Abs, 'AbsSigil');
+    const AbsSigil = SigilifyAbstract(Abs, generateRandomLabel());
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends AbsSigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class _C extends B {} // <-- label passed, evaluate C & B
-    const C = withSigil(_C, 'C'); // <-- label passed, evaluate C & B
+    const C = withSigil(_C, generateRandomLabel()); // <-- label passed, evaluate C & B
 
     // There is no expect to do here but evaluation will be prominent when autofillLabels is set to false
   });
@@ -398,26 +453,26 @@ describe('Sigil core runtime behavior', () => {
     updateSigilOptions({ autofillLabels: false });
 
     abstract class Abs {}
-    const AbsSigil = SigilifyAbstract(Abs, 'AbsSigil');
+    const AbsSigil = SigilifyAbstract(Abs, generateRandomLabel());
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends AbsSigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
 
     // Error is thrown the moment whe use '@WithSigil'
     expect(() => {
       class _C extends B {}
-      const C = withSigil(_C, 'C'); // <-- label passed, evaluate C & B
+      const C = withSigil(_C, generateRandomLabel()); // <-- label passed, evaluate C & B
     }).toThrow(
-      "[Sigil Error] Class 'B' is not sigilified with 'autofillLabels' setted to 'false', Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
+      "[Sigil Error] Class 'B' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
     );
   });
 
   test("[Lazy evaluation] Abstract, evaluation on 'new', autofillLabels true", () => {
     abstract class Abs {}
-    const AbsSigil = SigilifyAbstract(Abs, 'AbsSigil');
+    const AbsSigil = SigilifyAbstract(Abs, generateRandomLabel());
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends AbsSigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -431,9 +486,9 @@ describe('Sigil core runtime behavior', () => {
     updateSigilOptions({ autofillLabels: false });
 
     abstract class Abs {}
-    const AbsSigil = SigilifyAbstract(Abs, 'AbsSigil');
+    const AbsSigil = SigilifyAbstract(Abs, generateRandomLabel());
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends AbsSigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -442,15 +497,15 @@ describe('Sigil core runtime behavior', () => {
     expect(() => {
       const c = new C(); // <-- evaluate C & B
     }).toThrow(
-      "[Sigil Error] Class 'C' is not sigilified with 'autofillLabels' setted to 'false', Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
+      "[Sigil Error] Class 'C' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
     );
   });
 
   test("[Lazy evaluation] Abstract, evaluation on static 'SigilLabel', autofillLabels true", () => {
     abstract class Abs {}
-    const AbsSigil = SigilifyAbstract(Abs, 'AbsSigil');
+    const AbsSigil = SigilifyAbstract(Abs, generateRandomLabel());
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends AbsSigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -464,9 +519,9 @@ describe('Sigil core runtime behavior', () => {
     updateSigilOptions({ autofillLabels: false });
 
     abstract class Abs {}
-    const AbsSigil = SigilifyAbstract(Abs, 'AbsSigil');
+    const AbsSigil = SigilifyAbstract(Abs, generateRandomLabel());
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends AbsSigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -475,15 +530,15 @@ describe('Sigil core runtime behavior', () => {
     expect(() => {
       C.SigilLabel; // <-- evaluate C & B
     }).toThrow(
-      "[Sigil Error] Class 'C' is not sigilified with 'autofillLabels' setted to 'false', Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
+      "[Sigil Error] Class 'C' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
     );
   });
 
   test("[Lazy evaluation] Abstract, evaluation on static 'SigilEffectiveLabel', autofillLabels true", () => {
     abstract class Abs {}
-    const AbsSigil = SigilifyAbstract(Abs, 'AbsSigil');
+    const AbsSigil = SigilifyAbstract(Abs, generateRandomLabel());
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends AbsSigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -497,9 +552,9 @@ describe('Sigil core runtime behavior', () => {
     updateSigilOptions({ autofillLabels: false });
 
     abstract class Abs {}
-    const AbsSigil = SigilifyAbstract(Abs, 'AbsSigil');
+    const AbsSigil = SigilifyAbstract(Abs, generateRandomLabel());
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends AbsSigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -508,15 +563,15 @@ describe('Sigil core runtime behavior', () => {
     expect(() => {
       C.SigilEffectiveLabel; // <-- evaluate C & B
     }).toThrow(
-      "[Sigil Error] Class 'C' is not sigilified with 'autofillLabels' setted to 'false', Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
+      "[Sigil Error] Class 'C' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
     );
   });
 
   test("[Lazy evaluation] Abstract, evaluation on static 'SigilLabelLineage', autofillLabels true", () => {
     abstract class Abs {}
-    const AbsSigil = SigilifyAbstract(Abs, 'AbsSigil');
+    const AbsSigil = SigilifyAbstract(Abs, generateRandomLabel());
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends AbsSigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -530,9 +585,9 @@ describe('Sigil core runtime behavior', () => {
     updateSigilOptions({ autofillLabels: false });
 
     abstract class Abs {}
-    const AbsSigil = SigilifyAbstract(Abs, 'AbsSigil');
+    const AbsSigil = SigilifyAbstract(Abs, generateRandomLabel());
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends AbsSigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -541,15 +596,15 @@ describe('Sigil core runtime behavior', () => {
     expect(() => {
       C.SigilLabelLineage; // <-- evaluate C & B
     }).toThrow(
-      "[Sigil Error] Class 'C' is not sigilified with 'autofillLabels' setted to 'false', Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
+      "[Sigil Error] Class 'C' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
     );
   });
 
   test("[Lazy evaluation] Abstract, evaluation on static 'SigilLabelSet', autofillLabels true", () => {
     abstract class Abs {}
-    const AbsSigil = SigilifyAbstract(Abs, 'AbsSigil');
+    const AbsSigil = SigilifyAbstract(Abs, generateRandomLabel());
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends AbsSigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -563,9 +618,9 @@ describe('Sigil core runtime behavior', () => {
     updateSigilOptions({ autofillLabels: false });
 
     abstract class Abs {}
-    const AbsSigil = SigilifyAbstract(Abs, 'AbsSigil');
+    const AbsSigil = SigilifyAbstract(Abs, generateRandomLabel());
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends AbsSigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -574,15 +629,15 @@ describe('Sigil core runtime behavior', () => {
     expect(() => {
       C.SigilLabelSet; // <-- evaluate C & B
     }).toThrow(
-      "[Sigil Error] Class 'C' is not sigilified with 'autofillLabels' setted to 'false', Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
+      "[Sigil Error] Class 'C' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
     );
   });
 
   test("[Lazy evaluation] Abstract, evaluation on static 'isOfType()', autofillLabels true", () => {
     abstract class Abs {}
-    const AbsSigil = SigilifyAbstract(Abs, 'AbsSigil');
+    const AbsSigil = SigilifyAbstract(Abs, generateRandomLabel());
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends AbsSigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -596,9 +651,9 @@ describe('Sigil core runtime behavior', () => {
     updateSigilOptions({ autofillLabels: false });
 
     abstract class Abs {}
-    const AbsSigil = SigilifyAbstract(Abs, 'AbsSigil');
+    const AbsSigil = SigilifyAbstract(Abs, generateRandomLabel());
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends AbsSigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -607,15 +662,15 @@ describe('Sigil core runtime behavior', () => {
     expect(() => {
       C.isOfType({}); // <-- evaluate C & B
     }).toThrow(
-      "[Sigil Error] Class 'C' is not sigilified with 'autofillLabels' setted to 'false', Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
+      "[Sigil Error] Class 'C' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
     );
   });
 
   test("[Lazy evaluation] Abstract, evaluation on static 'isExactType()', autofillLabels true", () => {
     abstract class Abs {}
-    const AbsSigil = SigilifyAbstract(Abs, 'AbsSigil');
+    const AbsSigil = SigilifyAbstract(Abs, generateRandomLabel());
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends AbsSigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -629,9 +684,9 @@ describe('Sigil core runtime behavior', () => {
     updateSigilOptions({ autofillLabels: false });
 
     abstract class Abs {}
-    const AbsSigil = SigilifyAbstract(Abs, 'AbsSigil');
+    const AbsSigil = SigilifyAbstract(Abs, generateRandomLabel());
 
-    @WithSigil('A')
+    @WithSigil(generateRandomLabel())
     class A extends AbsSigil {} // <-- Label passed, evaluate A
     class B extends A {} // <-- lazily evaluated
     class C extends B {} // <-- lazily evaluated
@@ -640,7 +695,7 @@ describe('Sigil core runtime behavior', () => {
     expect(() => {
       C.isExactType({}); // <-- evaluate C & B
     }).toThrow(
-      "[Sigil Error] Class 'C' is not sigilified with 'autofillLabels' setted to 'false', Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
+      "[Sigil Error] Class 'C' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
     );
   });
 
@@ -649,28 +704,70 @@ describe('Sigil core runtime behavior', () => {
    * ---------------------- */
 
   test('[Options] Label validation', () => {
-    updateSigilOptions({ labelValidation: DEFAULT_LABEL_REGEX });
+    const validRegexLabel = '@test/Options.LabelValidation';
+    const validFuncLabel = 'SomeLabelMoreThan10';
+    const randomLabel = generateRandomLabel();
+
+    updateSigilOptions({ labelValidation: RECOMMENDED_LABEL_REGEX });
+
     expect(() => {
-      @WithSigil('@vicin/sigil.X')
+      @WithSigil(validRegexLabel)
       class X extends Sigil {}
     }).not.toThrow();
     expect(() => {
-      @WithSigil('X')
+      @WithSigil(randomLabel)
       class X extends Sigil {}
     }).toThrow(
-      "[Sigil Error] Invalid identity label 'X'. Make sure that supplied label matches validation regex or function"
+      `[Sigil Error] Invalid Sigil label '${randomLabel}'. Make sure that supplied label matches validation regex or function`
     );
-    updateSigilOptions({ labelValidation: (l: string) => l.length > 5 });
+
+    updateSigilOptions({ labelValidation: (l: string) => l.length > 10 });
+
     expect(() => {
-      @WithSigil('@vicin/sigil.X')
+      @WithSigil(validFuncLabel)
       class X extends Sigil {}
     }).not.toThrow();
     expect(() => {
-      @WithSigil('X')
+      @WithSigil(randomLabel)
       class X extends Sigil {}
     }).toThrow(
-      "[Sigil Error] Invalid identity label 'X'. Make sure that supplied label matches validation regex or function"
+      `[Sigil Error] Invalid Sigil label '${randomLabel}'. Make sure that supplied label matches validation regex or function`
     );
+  });
+
+  test('[Options] passed per-function options override global options', () => {
+    expect(() => {
+      class X {}
+      Sigilify(X, generateRandomLabel(), { labelValidation: RECOMMENDED_LABEL_REGEX });
+    }).toThrow();
+    expect(() => {
+      class X {}
+      Sigilify(X, undefined as any, { autofillLabels: false });
+    }).toThrow();
+    expect(() => {
+      abstract class X {}
+      SigilifyAbstract(X, generateRandomLabel(), { labelValidation: RECOMMENDED_LABEL_REGEX });
+    }).toThrow();
+    expect(() => {
+      abstract class X {}
+      SigilifyAbstract(X, undefined as any, { autofillLabels: false });
+    }).toThrow();
+    expect(() => {
+      class X extends Sigil {}
+      withSigil(X, generateRandomLabel(), { labelValidation: RECOMMENDED_LABEL_REGEX });
+    }).toThrow();
+    expect(() => {
+      class X extends Sigil {}
+      withSigil(X, undefined as any, { autofillLabels: false });
+    }).toThrow();
+    expect(() => {
+      @WithSigil(generateRandomLabel(), { labelValidation: RECOMMENDED_LABEL_REGEX })
+      class X extends Sigil {}
+    }).toThrow();
+    expect(() => {
+      @WithSigil(undefined as any, { autofillLabels: false })
+      class X extends Sigil {}
+    }).toThrow();
   });
 
   /** ----------------------
@@ -747,7 +844,7 @@ describe('Sigil core runtime behavior', () => {
 
   test('[Lineage] Abstract, constructors', () => {
     abstract class Abs {}
-    const AbsSigil = SigilifyAbstract(Abs, 'AbsSigil');
+    const AbsSigil = SigilifyAbstract(Abs, generateRandomLabel());
 
     // create classes
     class Base extends AbsSigil {}
@@ -784,7 +881,7 @@ describe('Sigil core runtime behavior', () => {
 
   test('[Lineage] Abstract, instances', () => {
     abstract class Abs {}
-    const AbsSigil = SigilifyAbstract(Abs, 'AbsSigil');
+    const AbsSigil = SigilifyAbstract(Abs, generateRandomLabel());
 
     // create classes
     class Base extends AbsSigil {}
@@ -847,7 +944,7 @@ describe('Sigil core runtime behavior', () => {
 
   test('[Lineage] Abstract, Return false on non objects', () => {
     abstract class Abs {}
-    const AbsSigil = SigilifyAbstract(Abs, 'AbsSigil');
+    const AbsSigil = SigilifyAbstract(Abs, generateRandomLabel());
 
     class A extends AbsSigil {}
     const a = new A();
@@ -875,103 +972,107 @@ describe('Sigil core runtime behavior', () => {
   });
 
   /** ----------------------
-   *  Inspectors
-   * ---------------------- */
-
-  test("[Inspectors] 'isSigilCtor' and 'isSigilInstance' helpers", () => {
-    class _X extends Sigil {}
-    const X = withSigil(_X, '@test/X');
-
-    class Y {}
-
-    const x = new X();
-    const y = new Y();
-
-    expect(isSigilCtor(X)).toBe(true);
-    expect(isSigilInstance(x)).toBe(true);
-
-    // Plain object is not a sigil instance
-    expect(isSigilCtor(Y)).toBe(false);
-    expect(isSigilInstance(y)).toBe(false);
-  });
-
-  test('[Inspectors] SigilLabel & SigilEffectiveLabel', () => {
-    class _Base extends Sigil {}
-    const Base = withSigil(_Base, '@test/Base');
-
-    class Sub extends Base {}
-
-    expect(Base.SigilLabel).toBe('@test/Base');
-    expect(Sub.SigilLabel).toMatch('@Sigil-auto:');
-    expect(Base.SigilEffectiveLabel).toBe('@test/Base');
-    expect(Sub.SigilEffectiveLabel).toBe('@test/Base');
-  });
-
-  /** ----------------------
    *  Errors
    * ---------------------- */
 
   test('[Errors] Throw on double siglify', () => {
-    class Class {}
-    const Ctor = Sigilify(Class, '@test/Ctor');
-    abstract class AbsClass {}
-    const AbsCtor = SigilifyAbstract(AbsClass, '@test/AbsCtor');
+    const label = generateRandomLabel();
+    const absLabel = generateRandomLabel();
 
-    expect(() => Sigilify(Ctor, '@test/Ctor')).toThrow(
-      "[Sigil Error] Class 'Sigilified' with label '@test/Ctor' is already sigilified"
+    class Class {}
+    const Ctor = Sigilify(Class, label);
+    abstract class AbsClass {}
+    const AbsCtor = SigilifyAbstract(AbsClass, absLabel);
+
+    expect(() => Sigilify(Ctor, label)).toThrow(
+      `[Sigil Error] Class 'Sigilified' with label '${label}' is already sigilified`
     );
-    expect(() => SigilifyAbstract(AbsCtor, '@test/AbsCtor')).toThrow(
-      "[Sigil Error] Class 'Sigilified' with label '@test/AbsCtor' is already sigilified"
+    expect(() => SigilifyAbstract(AbsCtor, absLabel)).toThrow(
+      `[Sigil Error] Class 'Sigilified' with label '${absLabel}' is already sigilified`
     );
   });
 
   test('[Errors] Throw when decorator or HOF is used on non-sigil class', () => {
     expect(() => {
-      @WithSigil('X')
+      @WithSigil(generateRandomLabel())
       class X {}
     }).toThrow(
       "[Sigil Error] 'WithSigil' decorator accept only Sigil classes but used on class 'X'"
     );
 
     expect(() => {
-      withSigil(class X {}, 'X');
+      withSigil(class X {}, generateRandomLabel());
     }).toThrow("[Sigil Error] 'withSigil' HOF accept only Sigil classes but used on class 'X'");
   });
 
   test('[Errors] Throw when decorator or HOF is used on the same class more than once', () => {
+    const labelHof = generateRandomLabel();
+    const labelDec = generateRandomLabel();
+
     expect(() => {
-      @WithSigil('B')
-      @WithSigil('A')
+      @WithSigil(labelHof)
+      @WithSigil(labelHof)
       class A extends Sigil {}
-    }).toThrow("[Sigil Error] Class 'A' with label 'A' is already sigilified");
+    }).toThrow(`[Sigil Error] Class 'A' with label '${labelHof}' is already sigilified`);
 
     expect(() => {
       class _A extends Sigil {}
-      withSigil(_A, 'A');
-      withSigil(_A, 'B');
-    }).toThrow("[Sigil Error] Class '_A' with label 'A' is already sigilified");
+      withSigil(_A, labelDec);
+      withSigil(_A, labelDec);
+    }).toThrow(`[Sigil Error] Class '_A' with label '${labelDec}' is already sigilified`);
   });
 
   test('[Errors] Throw if no label passed and autofillLabels is false', () => {
     updateSigilOptions({ autofillLabels: false });
+
     class X extends Sigil {}
+
     expect(() => {
       new X();
     }).toThrow(
-      "[Sigil Error] Class 'X' is not sigilified with 'autofillLabels' setted to 'false', Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
+      "[Sigil Error] Class 'X' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
     );
   });
 
-  test('[Errors] Throw if same label is passed in the same sigil chain', () => {
-    @WithSigil('A')
+  test('[Errors] Throw if same label is passed twice to sigil', () => {
+    expect(() => {
+      @WithSigil('Sigil') // Already passed by lib
+      class A extends Sigil {}
+    }).toThrow(
+      "[Sigil Error] Passed label 'Sigil' to class 'A' is re-used, passed labels must be unique"
+    );
+
+    const label = generateRandomLabel();
+
+    @WithSigil(label)
     class A extends Sigil {}
 
     expect(() => {
-      @WithSigil('A')
+      @WithSigil(label) // External re-used label
       class B extends A {}
     }).toThrow(
-      "[Sigil Error] Attempt to assign label 'A' to class 'B' but label is already used by parent 'A', Make sure that every class has a unique label"
+      `[Sigil Error] Passed label '${label}' to class 'B' is re-used, passed labels must be unique`
     );
+  });
+
+  test('[Errors] Throw on invalid label format', () => {
+    updateSigilOptions({ labelValidation: RECOMMENDED_LABEL_REGEX });
+
+    const randomLabel = generateRandomLabel();
+
+    expect(() => {
+      @WithSigil(randomLabel)
+      class X extends Sigil {}
+    }).toThrow(
+      `[Sigil Error] Invalid Sigil label '${randomLabel}'. Make sure that supplied label matches validation regex or function`
+    );
+  });
+
+  test("[Errors] Throw on using '@Sigil-auto' prefix", () => {
+    expect(() => {
+      @WithSigil(`@Sigil-auto:${generateRandomLabel()}`)
+      class X extends Sigil {}
+    }).toThrow("'@Sigil-auto' is a prefex reserved by the library");
   });
 
   test('[Errors] Throw on invalid options', () => {
@@ -981,13 +1082,6 @@ describe('Sigil core runtime behavior', () => {
     expect(() => {
       updateSigilOptions({ labelValidation: false as any });
     }).toThrow("'updateSigilOptions.labelValidation' must be null, function or RegExp");
-  });
-
-  test("[Errors] Throw on using '@Sigil-auto' prefix", () => {
-    expect(() => {
-      @WithSigil('@Sigil-auto:X')
-      class X extends Sigil {}
-    }).toThrow("'@Sigil-auto' is a prefex reserved by the library");
   });
 
   /** ----------------------
@@ -1025,5 +1119,27 @@ describe('Sigil core runtime behavior', () => {
     expect(inst.getSigilLabelLineage()).toEqual(['Sigil', 'SigilError']);
     expect(inst.getSigilLabelSet()).toEqual(new Set(['Sigil', 'SigilError']));
     expect(inst instanceof Error).toBe(true);
+  });
+
+  /** ----------------------
+   *  Deprecated
+   * ---------------------- */
+
+  test("[Deprecated] 'DEFAULT_LABEL_REGEX'", () => {
+    updateSigilOptions({ labelValidation: DEFAULT_LABEL_REGEX });
+
+    const validRegexLabel = '@test/Deprecated.DefaultLabelRegex';
+    const randomLabel = generateRandomLabel();
+
+    expect(() => {
+      @WithSigil(validRegexLabel)
+      class X extends Sigil {}
+    }).not.toThrow();
+    expect(() => {
+      @WithSigil(randomLabel)
+      class X extends Sigil {}
+    }).toThrow(
+      `[Sigil Error] Invalid Sigil label '${randomLabel}'. Make sure that supplied label matches validation regex or function`
+    );
   });
 });
