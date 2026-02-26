@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.4] - 2026-02-26
+
+### Changed
+
+- Updated description in `package.json`
+
 ## [3.1.3] - 2026-02-26
 
 ### Changed
