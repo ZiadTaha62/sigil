@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.3.0] - 2026-02-27
+
+### Changed
+
+- Label registry now stores user defined labels only, and `getSigilLabels` has no `includeAuto` argument any more
+
+### Added
+
+- Options `skipLabelUniquenessCheck` is added to avoid false-positive HMR throws
+
 ## [3.2.1] - 2026-02-27
 
 ### Changed

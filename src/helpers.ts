@@ -32,9 +32,6 @@ export function handleSigil(ctor: Function, label?: string, opts?: SigilOptions)
  * ----------------------------------------- */
 
 function handleAncestors(ctor: Function, opts?: Pick<SigilOptions, 'autofillLabels'>): void {
-  // handle options
-  const autofillLabels = opts?.autofillLabels ?? OPTIONS.autofillLabels;
-
   // get line age of this class (ancestors only)
   const ancestors: Function[] = [];
   let a = Object.getPrototypeOf(ctor);
@@ -47,6 +44,7 @@ function handleAncestors(ctor: Function, opts?: Pick<SigilOptions, 'autofillLabe
   const labelOwner = new Map<string, string>();
 
   // loop lineage to insure that each label is unique in ancestors
+  const autofillLabels = opts?.autofillLabels ?? OPTIONS.autofillLabels;
   for (const a of ancestors) {
     // get label
     const l = a.prototype[__LABEL__] as string;
@@ -105,8 +103,7 @@ function sigilify(ctor: Function, label: string) {
       enumerable: false,
       writable: false,
     });
-  // Add label to registered labels and mark as handled
-  getLabelRegistry().add(label);
+  // Mark as handled
   handledCtors.add(ctor);
 }
 
@@ -149,14 +146,10 @@ function lineageOf(ctor: Function): Set<string> | undefined {
 
 /**
  * Helper function to get labels registered by 'Sigil'
- *
- * @param includeAuto - Flag to include auto-generated labels as well, default is 'false'.
  * @returns Sigil labels registered
  */
-export function getSigilLabels(includeAuto: boolean = false): string[] {
-  const labels = getLabelRegistry().labels();
-  if (includeAuto) return labels;
-  return labels.filter((l) => !l.startsWith(AUTO_LABEL_PREFEX));
+export function getSigilLabels(): string[] {
+  return getLabelRegistry().labels();
 }
 
 /** -----------------------------------------
@@ -199,26 +192,30 @@ function getLabelRegistry(): LabelRegistry {
 
 /** Internal helper to validate passed label */
 function verifyLabel<L extends string>(ctor: Function, label?: L, opts?: SigilOptions): void {
-  // handle option
-  const labelValidation = opts?.labelValidation ?? OPTIONS.labelValidation;
-  const autofillLabels = opts?.autofillLabels ?? OPTIONS.autofillLabels;
+  // get label registry
+  const reg = getLabelRegistry();
 
+  // If no label passed throw error
   if (!label) {
-    if (!autofillLabels)
+    if (!(opts?.autofillLabels ?? OPTIONS.autofillLabels))
       throw new Error(
         `[Sigil Error] Class '${ctor?.name}' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'`
       );
     return;
   }
 
+  // If label starts with '@Sigil-auto:' throw error
   if (label.startsWith(AUTO_LABEL_PREFEX))
     throw new Error(`'${AUTO_LABEL_PREFEX}' is a prefex reserved by the library`);
 
-  if (getLabelRegistry().has(label))
+  // If label is duplicate throw error
+  if (!(opts?.skipLabelUniquenessCheck ?? OPTIONS.skipLabelUniquenessCheck) && reg.has(label))
     throw new Error(
       `[Sigil Error] Passed label '${label}' to class '${ctor?.name}' is re-used, passed labels must be unique`
     );
 
+  // If validation regex or function is defined validate
+  const labelValidation = opts?.labelValidation ?? OPTIONS.labelValidation;
   if (labelValidation) {
     let valid: boolean;
     if (labelValidation instanceof RegExp) valid = labelValidation.test(label);
@@ -229,6 +226,9 @@ function verifyLabel<L extends string>(ctor: Function, label?: L, opts?: SigilOp
         `[Sigil Error] Invalid Sigil label '${label}'. Make sure that supplied label matches validation regex or function`
       );
   }
+
+  // Add label to registry
+  reg.add(label);
 }
 
 /** Internal helper to generate random label */

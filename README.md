@@ -9,7 +9,7 @@
 
 ## Features
 
-- ✅ **Drop-in `instanceof` replacement** that works across bundles and monorepos, Also add check for **exact class instance**
+- ✅ **Drop-in `instanceof` replacement** that works across bundles, HMR and monorepos, Also add check for **exact class instance**
 - ✅ **Simple nominal typing** with just one line of code for each class (e.g., `UserId` vs. `PostId`)
 - ✅ **Tiny less than 1.6 KB minified and brotlied** measured using [size-limit](https://www.npmjs.com/package/size-limit)
 - ✅ **Performant as native instanceof** but with guaranteed checks
@@ -36,6 +36,7 @@
 - [Options & configuration](#options--configuration)
 - [Minimal mode](#minimal-mode)
 - [Strict mode](#strict-mode)
+- [Hot module reload](#hot-module-reload)
 - [Benchmarks](#benchmarks)
 - [Bundle Size](#bundle-size)
 - [Tests](#tests)
@@ -149,18 +150,20 @@ Congratulations — you’ve opted into `Sigil` and you can start replacing `ins
 
 ### Purpose and Origins
 
-Sigil addresses issues in large monorepos and Domain-Driven Design (DDD):
+Sigil addresses issues in large monorepos, HMR:
 
 - **Unreliable `instanceof`:** Bundling cause class redefinitions, breaking checks.
 
 ```ts
-// Can be broken in monorepo
+// Can be broken in monorepo or HMR set-ups
 if (obj instanceof User) { ... }
 
 // With Sigil
 if (User.isOfType(obj)) { ... } // This still works even if User was bundled twice.
 if (User.isExactType(obj)) { ... } // Or check for exactly same constructor not its children
 ```
+
+Also by utilizing unique passed labels it solve another problem in Domain-Driven Design (DDD):
 
 - **Manual Branding Overhead:** Custom identifiers lead to boilerplate and maintenance issues, `Sigil` add reliable inheritance-aware nominal branding with just one line of code.
 
@@ -174,8 +177,6 @@ class User extends Sigil {
 type test1 = User extends Sigil ? true : false; // true
 type test2 = Sigil extends User ? true : false; // false
 ```
-
-`Sigil` makes identity management **explicit** and **error-resistant** if defined the right way.
 
 ### Implementation Mechanics
 
@@ -334,6 +335,7 @@ class X extends Sigil {} // Throws: '@Sigil-auto' is a prefex reserved by the li
 ```ts
 updateSigilOptions({ autofillLabels: {} as any }); // Throws: 'updateSigilOptions.autofillLabels' must be boolean
 updateSigilOptions({ labelValidation: 123 as any }); // Throws: 'updateSigilOptions.labelValidation' must be null, function or RegExp
+updateSigilOptions({ skipLabelUniquenessCheck: 'str' as any }); // Throws: 'updateSigilOptions.skipLabelUniquenessCheck' must be boolean
 ```
 
 ---
@@ -359,7 +361,7 @@ updateSigilOptions({ labelValidation: 123 as any }); // Throws: 'updateSigilOpti
 - **Helpers:**
   - `isSigilCtor(ctor)`
   - `isSigilInstance(inst)`
-  - `getSigilLabels(includeAuto?)`
+  - `getSigilLabels()`
 
 - **Options:**
   - `updateSigilOptions(opts)`
@@ -384,7 +386,7 @@ updateSigilOptions({ labelValidation: 123 as any }); // Throws: 'updateSigilOpti
 - `withSigil(Class, label, opts?)`: HOF that validates and decorates an existing class constructor.
 - `isSigilCtor(value)`: `true` if `value` is a `Sigil` constructor.
 - `isSigilInstance(value)`: `true` if `value` is an instance of a `Sigil` constructor.
-- `getSigilLabels(includeAuto?)`: Get all `Sigil` labels registered, can include auto-generated labels as well.
+- `getSigilLabels()`: Get `Sigil` labels registered.
 - `updateSigilOptions(opts)`: change global runtime options of `Sigil` library (e.g., `autofillLabels`).
 - `RECOMMENDED_LABEL_REGEX`: regex that ensures structure of `@scope/package.ClassName` to all labels, it's advised to use it as your `SigilOptions.labelValidation`
 
@@ -420,6 +422,7 @@ import { updateSigilOptions } from '@vicin/sigil';
 updateSigilOptions({
   autofillLabels: true, // Automatically label unlabeled subclasses
   labelValidation: null, // Function or regex, Enforce label format
+  skipLabelUniquenessCheck: false, // Skip uniqueness check for labels, should be used in HMR set-ups only
 });
 ```
 
@@ -429,7 +432,7 @@ Values defined in previous example are defaults, per-class overrides available i
 
 ## Minimal mode
 
-You can ignore all decorators and HOFs and just make base class extend `Sigil`:
+By default `Sigil` works with minimal mode, You can ignore all decorators and HOFs and just make base class extend `Sigil`:
 
 ```ts
 import { Sigil, updateSigilOptions } from '@vicin/sigil';
@@ -451,6 +454,29 @@ updateSigilOptions({ autofillLabels: false });
 ```
 
 Now if you forgot to pass a label error is thrown at the moment you create class instance or use any of `Sigil` methods.
+
+---
+
+## Hot module reload
+
+HMR can cause class re-definitions, which will throw in default `Sigil` set-up as same label will be passed multiple times triggering duplicate label error.
+To avoid this you can set global options to skip label uniqueness check at the start of app:
+
+```ts
+import { updateSigilOptions } from '@vicin/sigil';
+
+updateSigilOptions({ skipLabelUniquenessCheck: true });
+```
+
+But this can cause bugs if same label is used for two different classes as checks are disables globally.
+If you need more strict mode you can pass this options to the re-loaded class only:
+
+```ts
+@WithSigil('HmrClassLabel', { skipLabelUniquenessCheck: true })
+class HmrClass extends Sigil {}
+```
+
+With this approach `skipLabelUniquenessCheck` affects only `HmrClass`, and if `HmrClassLabel` or any other label is re-used error is thrown immediately
 
 ---
 
@@ -503,7 +529,7 @@ npm run bench
 
 ## Bundle Size
 
-**Less than 1.6 KB (1.51 KB)** (minified + Brotli, including all dependencies)
+**Less than 1.6 KB (1.54 KB)** (minified + Brotli, including all dependencies)
 
 This makes Sigil one of the smallest full-featured solutions for nominal typing + reliable runtime identity.
 

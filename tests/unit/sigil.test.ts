@@ -24,11 +24,19 @@ function generateRandomLabel(): string {
 
 describe('Sigil core runtime behavior', () => {
   beforeEach(() => {
-    updateSigilOptions({ autofillLabels: true, labelValidation: null });
+    updateSigilOptions({
+      autofillLabels: true,
+      labelValidation: null,
+      skipLabelUniquenessCheck: false,
+    });
   });
 
   afterEach(() => {
-    updateSigilOptions({ autofillLabels: true, labelValidation: null });
+    updateSigilOptions({
+      autofillLabels: true,
+      labelValidation: null,
+      skipLabelUniquenessCheck: false,
+    });
   });
 
   /** ----------------------
@@ -38,11 +46,10 @@ describe('Sigil core runtime behavior', () => {
   test("[Inspection] 'getSigilLabels'", () => {
     @WithSigil('X')
     class X extends Sigil {} // <-- explicit label
-    class Y extends Sigil {} // <-- random generated label
-    new Y(); // <-- Evaluate Y ( more info in [Lazy evaluation] )
+    class Y extends Sigil {} // <-- random generated label, should not be added to set
+    new Y();
 
     expect(getSigilLabels()).toEqual(['Sigil', 'SigilError', 'X']);
-    expect(getSigilLabels(true)[3]).toMatch('@Sigil-auto:');
   });
 
   test("[Inspection] 'isSigilCtor' and 'isSigilInstance' helpers", () => {
@@ -703,7 +710,25 @@ describe('Sigil core runtime behavior', () => {
    *  Options
    * ---------------------- */
 
-  test('[Options] Label validation', () => {
+  test('[Options] autofillLabels', () => {
+    updateSigilOptions({ autofillLabels: false });
+
+    expect(() => {
+      class A extends Sigil {}
+      new A();
+    }).toThrow(
+      "[Sigil Error] Class 'A' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'"
+    );
+
+    updateSigilOptions({ autofillLabels: true });
+
+    expect(() => {
+      class A extends Sigil {}
+      new A();
+    }).not.toThrow();
+  });
+
+  test('[Options] LabelValidation', () => {
     const validRegexLabel = '@test/Options.LabelValidation';
     const validFuncLabel = 'SomeLabelMoreThan10';
     const randomLabel = generateRandomLabel();
@@ -712,11 +737,11 @@ describe('Sigil core runtime behavior', () => {
 
     expect(() => {
       @WithSigil(validRegexLabel)
-      class X extends Sigil {}
+      class A extends Sigil {}
     }).not.toThrow();
     expect(() => {
       @WithSigil(randomLabel)
-      class X extends Sigil {}
+      class A extends Sigil {}
     }).toThrow(
       `[Sigil Error] Invalid Sigil label '${randomLabel}'. Make sure that supplied label matches validation regex or function`
     );
@@ -735,6 +760,24 @@ describe('Sigil core runtime behavior', () => {
     );
   });
 
+  test('[Options] skipLabelUniquenessCheck', () => {
+    updateSigilOptions({ skipLabelUniquenessCheck: false });
+
+    expect(() => {
+      @WithSigil('Sigil')
+      class A extends Sigil {}
+    }).toThrow(
+      `[Sigil Error] Passed label 'Sigil' to class 'A' is re-used, passed labels must be unique`
+    );
+
+    updateSigilOptions({ skipLabelUniquenessCheck: true });
+
+    expect(() => {
+      @WithSigil('Sigil')
+      class X extends Sigil {}
+    }).not.toThrow();
+  });
+
   test('[Options] passed per-function options override global options', () => {
     expect(() => {
       class X {}
@@ -745,6 +788,10 @@ describe('Sigil core runtime behavior', () => {
       Sigilify(X, undefined as any, { autofillLabels: false });
     }).toThrow();
     expect(() => {
+      class X {}
+      Sigilify(X, 'Sigil', { skipLabelUniquenessCheck: true });
+    }).not.toThrow();
+    expect(() => {
       abstract class X {}
       SigilifyAbstract(X, generateRandomLabel(), { labelValidation: RECOMMENDED_LABEL_REGEX });
     }).toThrow();
@@ -752,6 +799,10 @@ describe('Sigil core runtime behavior', () => {
       abstract class X {}
       SigilifyAbstract(X, undefined as any, { autofillLabels: false });
     }).toThrow();
+    expect(() => {
+      abstract class X {}
+      SigilifyAbstract(X, 'Sigil', { skipLabelUniquenessCheck: true });
+    }).not.toThrow();
     expect(() => {
       class X extends Sigil {}
       withSigil(X, generateRandomLabel(), { labelValidation: RECOMMENDED_LABEL_REGEX });
@@ -761,6 +812,10 @@ describe('Sigil core runtime behavior', () => {
       withSigil(X, undefined as any, { autofillLabels: false });
     }).toThrow();
     expect(() => {
+      class X extends Sigil {}
+      withSigil(X, 'Sigil', { skipLabelUniquenessCheck: true });
+    }).not.toThrow();
+    expect(() => {
       @WithSigil(generateRandomLabel(), { labelValidation: RECOMMENDED_LABEL_REGEX })
       class X extends Sigil {}
     }).toThrow();
@@ -768,6 +823,10 @@ describe('Sigil core runtime behavior', () => {
       @WithSigil(undefined as any, { autofillLabels: false })
       class X extends Sigil {}
     }).toThrow();
+    expect(() => {
+      @WithSigil('Sigil', { skipLabelUniquenessCheck: true })
+      class X extends Sigil {}
+    }).not.toThrow();
   });
 
   /** ----------------------
@@ -1082,6 +1141,9 @@ describe('Sigil core runtime behavior', () => {
     expect(() => {
       updateSigilOptions({ labelValidation: false as any });
     }).toThrow("'updateSigilOptions.labelValidation' must be null, function or RegExp");
+    expect(() => {
+      updateSigilOptions({ skipLabelUniquenessCheck: 123 as any });
+    }).toThrow("'updateSigilOptions.skipLabelUniquenessCheck' must be boolean");
   });
 
   /** ----------------------
