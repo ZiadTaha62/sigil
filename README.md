@@ -7,19 +7,14 @@
 
 `Sigil` gives you the power of **safe cross-bundle class instances checks** and **simple class nominal typing** if needed.
 
-> **Key ideas:**
->
-> - **Reliable Runtime Checks:** Uses `isOfType` instead of `instanceof` for cross-bundle reliability.
-> - **Nominal Typing at Compile Time:** Distinguishes structurally similar types (e.g., UserId vs. PostId).
-
 ## Features
 
-- ✅ **Drop-in `instanceof` replacement** that works across bundles, HMR, and monorepos, Also can check for **exact class instance**
-- ✅ **Simple nominal typing** with just one line of code for each class
+- ✅ **Drop-in `instanceof` replacement** that works across bundles and monorepos, Also add check for **exact class instance**
+- ✅ **Simple nominal typing** with just one line of code for each class (e.g., `UserId` vs. `PostId`)
 - ✅ **Tiny less than 1.6 KB minified and brotlied** measured using [size-limit](https://www.npmjs.com/package/size-limit)
 - ✅ **Performant as native instanceof** but with guaranteed checks
 - ✅ **Test coverage is 100%** to ensure that runtime remains consistent and predictable
-- ✅ **Safe with strict rules to ensure uniqueness of labels**, if duplicated label is passed and error is thrown immediately
+- ✅ **Safe with strict rules to ensure uniqueness of labels**, if duplicate label is passed error is thrown immediately
 
 ---
 
@@ -35,7 +30,7 @@
   - [Terminology](#terminology)
   - [Purpose and Origins](#purpose-and-origins)
   - [Implementation Mechanics](#implementation-mechanics)
-  - [Inheritance example](#inheritance-example)
+  - [Example](#example)
   - [Errors & throws](#errors--throws)
 - [API reference](#api-reference)
 - [Options & configuration](#options--configuration)
@@ -90,8 +85,6 @@ abstract class User extends Sigil {}
 const MyClass = SigilifyAbstract(abstract class {}, '@myorg/mypkg.MyClass');
 ```
 
-This adds runtime metadata to the constructor and allows you to use runtime helpers, see [API reference](#api-reference).
-
 #### Extend `Sigil` classes
 
 After opting into the `Sigil` contract, labels are passed to child classes to uniquely identify them, they can be supplied using two patterns:
@@ -116,9 +109,6 @@ import { Sigil, withSigil } from '@vicin/sigil';
 
 class _User extends Sigil {}
 const User = withSigil(_User, '@myorg/mypkg.User');
-
-const user = new User();
-console.log(User.SigilLabel); // "@myorg/mypkg.User"
 ```
 
 ### Migration
@@ -161,10 +151,10 @@ Congratulations — you’ve opted into `Sigil` and you can start replacing `ins
 
 Sigil addresses issues in large monorepos and Domain-Driven Design (DDD):
 
-- **Unreliable `instanceof`:** Bundling and HMR cause class redefinitions, breaking checks.
+- **Unreliable `instanceof`:** Bundling cause class redefinitions, breaking checks.
 
 ```ts
-// Broken in monorepo or HMR
+// Can be broken in monorepo
 if (obj instanceof User) { ... }
 
 // With Sigil
@@ -201,7 +191,7 @@ class MyClass extends Sigil {
 }
 ```
 
-You can avoid decorators and use HOF but they are slightly more verbose:
+You can avoid decorators and use HOF if needed:
 
 ```ts
 import { Sigil, withSigil, sigil, ExtendSigil } from '@vicin/sigil';
@@ -216,7 +206,7 @@ type MyClass = InstanceType<typeof MyClass>;
 
 Note that you can't use `InstanceType` on `private` or `protected` classes, however you can use `GetPrototype<T>` in such cases.
 
-### Inheritance example
+### Example
 
 ```ts
 import { Sigil, WithSigil } from '@vicin/sigil';
@@ -241,13 +231,31 @@ console.log(User.isOfType(admin)); // true
 console.log(User.isOfType(user)); // true
 
 // Exact checks
-console.log(Admin.isOfType(admin)); // true
-console.log(Admin.isOfType(user)); // false
-console.log(User.isOfType(user)); // true
-console.log(User.isOfType(admin)); // false (Admin is child indeed but this checks for user specifically)
+console.log(Admin.isExactType(admin)); // true
+console.log(Admin.isExactType(user)); // false
+console.log(User.isExactType(user)); // true
+console.log(User.isExactType(admin)); // false (Admin is child indeed but this checks for user specifically)
 
+// Can use checks from instances
+console.log(admin.isOfType(user)); // false
+console.log(user.isOfType(admin)); // true
+console.log(admin.isExactType(user)); // false
+console.log(user.isExactType(admin)); // false
+
+// Type checks are nominal
 type test1 = Admin extends User ? true : false; // true
 type test2 = User extends Admin ? true : false; // false
+
+// Passed label must be unique (enforced by Sigil) so can be used as stable Id for class
+// Also 'SigilLabelLineage' and 'SigilLabelSet' are useful for logging & debugging
+console.log(Admin.SigilLabel); // '@myorg/Admin'
+console.log(Admin.SigilEffectiveLabel); // '@myorg/Admin'
+console.log(Admin.SigilLabelLineage); // ['Sigil', '@myorg/User', '@myorg/Admin']
+console.log(Admin.SigilLabelSet); // Set(['Sigil', '@myorg/User', '@myorg/Admin'])
+console.log(admin.getSigilLabel()); // '@myorg/Admin'
+console.log(admin.getSigilEffectiveLabel()); // '@myorg/Admin'
+console.log(admin.getSigilLabelLineage()); // ['Sigil', '@myorg/User', '@myorg/Admin']
+console.log(admin.getSigilLabelSet()); // Set(['Sigil', '@myorg/User', '@myorg/Admin'])
 ```
 
 ### Errors & throws
@@ -382,7 +390,7 @@ updateSigilOptions({ labelValidation: 123 as any }); // Throws: 'updateSigilOpti
 
 ### Instance & static helpers provided by Sigilified constructors
 
-When a constructor is decorated/sigilified it will expose the following **static** getters/methods:
+When a constructor is sigilified it will expose the following **static** getters/methods:
 
 - `SigilLabel` — the identity label string.
 - `SigilEffectiveLabel` — the human label string.
