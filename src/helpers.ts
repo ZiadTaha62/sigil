@@ -1,30 +1,56 @@
 import { OPTIONS, type SigilOptions } from './options';
-import { __LABEL__, __EFFECTIVE_LABEL__, __SIGIL__, __LINEAGE__ } from './symbols';
+import { __LABEL__, __EFFECTIVE_LABEL__, __SIGIL__, __DEPTH__ } from './symbols';
 import type { ISigil, ISigilInstance } from './types';
+
+/** -----------------------------------------
+ *  Constants
+ * ----------------------------------------- */
 
 /** Prefex use by the lib to identify auto-generated classes */
 const AUTO_LABEL_PREFEX = '@Sigil-auto';
 
 /** -----------------------------------------
- *  Main helper
+ *  Weak maps
  * ----------------------------------------- */
 
-/** Weak set to ensure that every ctor is handled only once. */
+/** Weak set to ensure that every ctor is handled only once. register both explicit and lazy handles */
 const handledCtors = new WeakSet<Function>();
 
-/** Main function to handle 'Sigil' and attach its metadata to the class */
-export function handleSigil(ctor: Function, label?: string, opts?: SigilOptions) {
+/** Weak set to ensure that every ctor is handled only once. register explicit handles only */
+const handledCtorsExplicit = new WeakSet<Function>();
+
+/** -----------------------------------------
+ *  Main helpers
+ * ----------------------------------------- */
+
+/** Main function to handle 'Sigil' and attach its metadata to the class when label is passed */
+export function handleSigilExplicit(ctor: Function, label: string, opts?: SigilOptions): void {
   // fast return if already defined
-  if (handledCtors.has(ctor)) return;
-
-  // Verify label
+  if (handledCtorsExplicit.has(ctor))
+    throw new Error(
+      `[Sigil Error] Class '${ctor.name}' with label '${(ctor as any).SigilLabel}' is already sigilified`
+    );
+  // verify label
   verifyLabel(ctor, label, opts);
-
-  // check ancestors to ensure that every label in sigil chain in unique
+  // lazy evaluate ancestors
   handleAncestors(ctor, opts);
+  // sigilify ctor
+  sigilify(ctor, label, true);
+}
 
-  // handle current class
-  sigilify(ctor, label ?? generateRandomLabel(ctor));
+/** Function to lazily evaluate 'Sigil' ( update with auto-generated metadata or throw ) */
+export function handleSigilLazy(ctor: Function): void {
+  // fast return if already handled
+  if (handledCtors.has(ctor)) return;
+  // if autofillLabels is set to false throw error
+  if (!OPTIONS.autofillLabels)
+    throw new Error(
+      `[Sigil Error] Class '${ctor?.name}' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'`
+    );
+  // lazy evaluate ancestors
+  handleAncestors(ctor);
+  // sigilify ctor
+  sigilify(ctor, generateRandomLabel(ctor), false);
 }
 
 /** -----------------------------------------
@@ -54,57 +80,70 @@ function handleAncestors(ctor: Function, opts?: Pick<SigilOptions, 'autofillLabe
         throw new Error(
           `[Sigil Error] Class '${a.name}' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'`
         );
-      sigilify(a, generateRandomLabel(a));
+      sigilify(a, generateRandomLabel(a), false);
     }
     // register current label with class name
-    labelOwner.set(labelOf(a)!, a.name);
+    labelOwner.set(a.prototype[__LABEL__], a.name);
   }
 }
 
-function sigilify(ctor: Function, label: string) {
+function sigilify(ctor: Function, label: string, explicit: boolean) {
+  // -------------------------
+  // Get symbol from label
+  // -------------------------
+
   const sym = Symbol.for(label);
+
+  // -------------------------
+  // Populate 'Sigil' symbols
+  // -------------------------
+
   Object.defineProperty(ctor.prototype, __SIGIL__, {
     value: sym,
-    configurable: false,
-    enumerable: false,
-    writable: false,
-  });
-  Object.defineProperty(ctor.prototype, sym, {
-    value: true,
-    configurable: false,
+    configurable: !explicit,
     enumerable: false,
     writable: false,
   });
   Object.defineProperty(ctor.prototype, __LABEL__, {
     value: label,
-    configurable: false,
+    configurable: !explicit,
     enumerable: false,
     writable: false,
   });
-  if (!label.startsWith(AUTO_LABEL_PREFEX))
+  if (explicit)
     Object.defineProperty(ctor.prototype, __EFFECTIVE_LABEL__, {
       value: label,
       configurable: false,
       enumerable: false,
       writable: false,
     });
-  Object.defineProperty(ctor.prototype, __LINEAGE__, {
-    value: new Set(['Sigil', ...(lineageOf(ctor) ?? []), label]),
-    configurable: false,
-    enumerable: false,
-    writable: false,
-  });
-  // add { Symbol.for('Sigil'): true } if not present
-  const sigilSym = Symbol.for('Sigil');
-  if (ctor.prototype[sigilSym] !== true)
-    Object.defineProperty(ctor.prototype, sigilSym, {
-      value: true,
+  if (!handledCtors.has(ctor))
+    Object.defineProperty(ctor.prototype, __DEPTH__, {
+      value: (ctor.prototype[__DEPTH__] ?? -1) + 1,
       configurable: false,
       enumerable: false,
       writable: false,
     });
+
+  // -------------------------
+  // Add { symbol: ture } pair
+  // -------------------------
+
+  Object.defineProperty(ctor.prototype, sym, {
+    value: true,
+    configurable: false,
+    enumerable: false,
+    writable: false,
+  });
+
+  // -------------------------
   // Mark as handled
+  // -------------------------
+
+  // mark as handled (explicit or lazy)
   handledCtors.add(ctor);
+  // if explicit mark as handled explicit
+  if (explicit) handledCtorsExplicit.add(ctor);
 }
 
 /** -----------------------------------------
@@ -130,18 +169,6 @@ export function isSigilCtor(ctor: unknown): ctor is ISigil {
  */
 export function isSigilInstance(inst: unknown): inst is ISigilInstance {
   return !!inst && typeof inst === 'object' && __SIGIL__ in inst;
-}
-
-export function hasOwnSigil(ctor: Function): ctor is ISigil {
-  return typeof ctor === 'function' && Object.hasOwn(ctor.prototype, __SIGIL__);
-}
-
-function labelOf(ctor: Function): string | undefined {
-  return ctor.prototype[__LABEL__];
-}
-
-function lineageOf(ctor: Function): Set<string> | undefined {
-  return ctor.prototype[__LINEAGE__];
 }
 
 /**
@@ -191,18 +218,9 @@ function getLabelRegistry(): LabelRegistry {
 }
 
 /** Internal helper to validate passed label */
-function verifyLabel<L extends string>(ctor: Function, label?: L, opts?: SigilOptions): void {
+function verifyLabel<L extends string>(ctor: Function, label: L, opts?: SigilOptions): void {
   // get label registry
   const reg = getLabelRegistry();
-
-  // If no label passed throw error
-  if (!label) {
-    if (!(opts?.autofillLabels ?? OPTIONS.autofillLabels))
-      throw new Error(
-        `[Sigil Error] Class '${ctor?.name}' is not sigilified, Make sure to sigilify all Sigil classes or set 'autofillLabels' to 'true'`
-      );
-    return;
-  }
 
   // If label starts with '@Sigil-auto:' throw error
   if (label.startsWith(AUTO_LABEL_PREFEX))

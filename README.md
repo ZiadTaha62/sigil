@@ -9,7 +9,7 @@
 
 ## Features
 
-- ✅ **Drop-in `instanceof` replacement** that works across bundles, HMR and monorepos, Also add check for **exact class instance**
+- ✅ **Drop-in `instanceof` replacement** that works across bundles, HMR and monorepos, and adds an **exact-class-instance check**
 - ✅ **Simple nominal typing** with just one line of code for each class (e.g., `UserId` vs. `PostId`)
 - ✅ **Tiny less than 1.6 KB minified and brotlied** measured using [size-limit](https://www.npmjs.com/package/size-limit)
 - ✅ **Performant as native instanceof** but with guaranteed checks
@@ -24,7 +24,7 @@
   - [Install](#install)
   - [Basic usage](#basic-usage)
   - [Decorator pattern](#decorator-pattern)
-  - [HOF pattern](#hof-higher-order-function-pattern)
+  - [Function pattern](#function-pattern)
   - [Migration](#migration)
 - [Core concepts](#core-concepts)
   - [Terminology](#terminology)
@@ -37,6 +37,7 @@
 - [Minimal mode](#minimal-mode)
 - [Strict mode](#strict-mode)
 - [Hot module reload](#hot-module-reload)
+- [Edge cases](#edge-cases)
 - [Benchmarks](#benchmarks)
 - [Bundle Size](#bundle-size)
 - [Tests](#tests)
@@ -58,7 +59,9 @@ yarn add @vicin/sigil
 pnpm add @vicin/sigil
 ```
 
-Requires TypeScript 5.0+ for decorators; HOFs work on older versions. Node.js 18+ recommended.
+Requires TypeScript 5.0+ for decorators; attach functions work on older versions. Node.js 18+ recommended.
+
+> No tsconfig changes are needed as we use **Stage 3 decorators** which are supported by default in TypeScript 5.0+
 
 ### Basic usage
 
@@ -92,25 +95,27 @@ After opting into the `Sigil` contract, labels are passed to child classes to un
 
 ##### Decorator pattern
 
-Apply a label with the `@WithSigil` decorator:
+Apply a label with the `@AttachSigil` decorator:
 
 ```ts
-import { Sigil, WithSigil } from '@vicin/sigil';
+import { Sigil, AttachSigil } from '@vicin/sigil';
 
-@WithSigil('@myorg/mypkg.User')
+@AttachSigil('@myorg/mypkg.User')
 class User extends Sigil {}
 ```
 
-##### HOF (Higher-Order Function) pattern
+##### Function pattern
 
-Apply a label using `withSigil` HOF:
+Apply a label using `attachSigil` function:
 
 ```ts
-import { Sigil, withSigil } from '@vicin/sigil';
+import { Sigil, attachSigil } from '@vicin/sigil';
 
-class _User extends Sigil {}
-const User = withSigil(_User, '@myorg/mypkg.User');
+class User extends Sigil {}
+attachSigil(User, '@myorg/mypkg.User');
 ```
+
+> Note: Function pattern is susceptible to some [Edge case subtle pitfalls](#edge-cases) if not used appropriately, so we advise to use decorator pattern
 
 ### Migration
 
@@ -163,9 +168,9 @@ if (User.isOfType(obj)) { ... } // This still works even if User was bundled twi
 if (User.isExactType(obj)) { ... } // Or check for exactly same constructor not its children
 ```
 
-Also by utilizing unique passed labels it solve another problem in Domain-Driven Design (DDD):
+Also by utilizing unique passed labels it solves another problem in Domain-Driven Design (DDD):
 
-- **Manual Branding Overhead:** Custom identifiers lead to boilerplate and maintenance issues, `Sigil` add reliable inheritance-aware nominal branding with just one line of code.
+- **Manual Branding Overhead:** Custom identifiers lead to boilerplate and maintenance issues, `Sigil` adds reliable inheritance-aware nominal branding with just one line of code.
 
 ```ts
 import { sigil } from '@vicin/sigil';
@@ -181,43 +186,40 @@ type test2 = Sigil extends User ? true : false; // false
 ### Implementation Mechanics
 
 - **Runtime Contract:** Established via extending `Sigil` or using `Sigilify` mixin.
-- **Update metadata:** With each new child, use decorators or HOF to attach run-time metadata and `ExtendSigil` to update nominal type.
+- **Update metadata:** With each new child, use decorator (`AttachSigil`) or function (`attachSigil`) to attach run-time metadata, also use `ExtendSigil` on `[sigil]` field to update nominal type.
 
 ```ts
-import { Sigil, WithSigil, sigil, ExtendSigil } from '@vicin/sigil';
+import { Sigil, AttachSigil, sigil, ExtendSigil } from '@vicin/sigil';
 
-@WithSigil('@scope/package.MyClass') // <-- Run-time values update
+@AttachSigil('@scope/package.MyClass') // <-- Run-time values update
 class MyClass extends Sigil {
   declare [sigil]: ExtendSigil<'MyClass', Sigil>; // <-- compile-time type update
 }
 ```
 
-You can avoid decorators and use HOF if needed:
+You can avoid decorators and use normal functions if needed:
 
 ```ts
-import { Sigil, withSigil, sigil, ExtendSigil } from '@vicin/sigil';
+import { Sigil, attachSigil, sigil, ExtendSigil } from '@vicin/sigil';
 
-class _MyClass extends Sigil {
+class MyClass extends Sigil {
   declare [sigil]: ExtendSigil<'MyClass', Sigil>;
 }
 
-const MyClass = withSigil(_MyClass, '@scope/package.MyClass');
-type MyClass = InstanceType<typeof MyClass>;
+attachSigil(MyClass, '@scope/package.MyClass');
 ```
-
-Note that you can't use `InstanceType` on `private` or `protected` classes, however you can use `GetPrototype<T>` in such cases.
 
 ### Example
 
 ```ts
-import { Sigil, WithSigil } from '@vicin/sigil';
+import { Sigil, AttachSigil } from '@vicin/sigil';
 
-@WithSigil('@myorg/User')
+@AttachSigil('@myorg/User')
 class User extends Sigil {
   declare [sigil]: ExtendSigil<'User', Sigil>;
 }
 
-@WithSigil('@myorg/Admin')
+@AttachSigil('@myorg/Admin')
 class Admin extends User {
   declare [sigil]: ExtendSigil<'Admin', User>;
 }
@@ -248,51 +250,40 @@ type test1 = Admin extends User ? true : false; // true
 type test2 = User extends Admin ? true : false; // false
 
 // Passed label must be unique (enforced by Sigil) so can be used as stable Id for class
-// Also 'SigilLabelLineage' and 'SigilLabelSet' are useful for logging & debugging
+// Also 'SigilLabelLineage' is useful for logging & debugging
 console.log(Admin.SigilLabel); // '@myorg/Admin'
 console.log(Admin.SigilEffectiveLabel); // '@myorg/Admin'
 console.log(Admin.SigilLabelLineage); // ['Sigil', '@myorg/User', '@myorg/Admin']
-console.log(Admin.SigilLabelSet); // Set(['Sigil', '@myorg/User', '@myorg/Admin'])
 console.log(admin.getSigilLabel()); // '@myorg/Admin'
 console.log(admin.getSigilEffectiveLabel()); // '@myorg/Admin'
 console.log(admin.getSigilLabelLineage()); // ['Sigil', '@myorg/User', '@myorg/Admin']
-console.log(admin.getSigilLabelSet()); // Set(['Sigil', '@myorg/User', '@myorg/Admin'])
 ```
 
 ### Errors & throws
 
 Run-time errors that can be thrown by `Sigil`:
 
-#### Double `Sigilify() / SigilifyAbstract()`
+#### Double Sigilify
 
 ```ts
 class A {}
-const B = Sigilify(A, 'A');
-const C = Sigilify(B, 'B'); // Throws: [Sigil Error] Class 'Sigilified' with label 'A' is already sigilified
+Sigilify(Sigilify(A, 'A'), 'B'); // Throws: [Sigil Error] Class 'Sigilified' with label 'A' is already sigilified
 
-abstract class AbsA {}
-const AbsB = SigilifyAbstract(AbsA, 'AbsA');
-const AbsC = SigilifyAbstract(AbsB, 'AbsB'); // Throws: [Sigil Error] Class 'Sigilified' with label 'AbsA' is already sigilified
-```
-
-#### `@WithSigil() / withSigil()` on non-Sigil class
-
-```ts
-@WithSigil('A')
-class A {} // Throws: [Sigil Error] 'WithSigil' decorator accept only Sigil classes but used on class 'A'
-
-withSigil(class A {}); // Throws: [Sigil Error] 'WithSigil' decorator accept only Sigil classes but used on class 'A'
-```
-
-#### Double `@WithSigil() / withSigil()`
-
-```ts
-@WithSigil('B')
-@WithSigil('A')
+@AttachSigil('B')
+@AttachSigil('A')
 class A extends Sigil {} // Throws: [Sigil Error] Class 'A' with label 'A' is already sigilified
 
-class _A extends Sigil {}
-withSigil(withSigil(_A, 'A'), 'B'); // Throws: [Sigil Error] Class 'A' with label 'A' is already sigilified
+class A extends Sigil {}
+attachSigil(attachSigil(A, 'A'), 'B'); // Throws: [Sigil Error] Class 'A' with label 'A' is already sigilified
+```
+
+#### `@AttachSigil() / attachSigil()` on non-Sigil class
+
+```ts
+@AttachSigil('A') // Throws: [Sigil Error] 'AttachSigil' decorator accept only Sigil classes but used on class 'A'
+class A {}
+
+attachSigil(class A {}); // Throws: [Sigil Error] 'AttachSigil' function accept only Sigil classes but used on class 'A'
 ```
 
 #### No label is passed with `autofillLabels: false`
@@ -307,10 +298,10 @@ new A(); // Throws: [Sigil Error] Class 'A' is not sigilified, Make sure to sigi
 #### Same label is passed twice to `Sigil`
 
 ```ts
-@WithSigil('Label')
+@AttachSigil('Label')
 class A extends Sigil {}
 
-@WithSigil('Label')
+@AttachSigil('Label')
 class B extends Sigil {} // Throws: [Sigil Error] Passed label 'Label' to class 'B' is re-used, passed labels must be unique
 ```
 
@@ -319,15 +310,15 @@ class B extends Sigil {} // Throws: [Sigil Error] Passed label 'Label' to class 
 ```ts
 updateSigilOptions({ labelValidation: RECOMMENDED_LABEL_REGEX });
 
-@WithSigil('InvalidLabel')
+@AttachSigil('InvalidLabel')
 class A extends Sigil {} // Throws: [Sigil Error] Invalid Sigil label 'InvalidLabel'. Make sure that supplied label matches validation regex or function
 ```
 
 #### Using '@Sigil-auto' prefix
 
 ```ts
-@WithSigil('@Sigil-auto:label')
-class X extends Sigil {} // Throws: '@Sigil-auto' is a prefex reserved by the library
+@AttachSigil('@Sigil-auto:label')
+class X extends Sigil {} // Throws: '@Sigil-auto' is a prefix reserved by the library
 ```
 
 #### Invalid options passed to `updateOptions`
@@ -353,10 +344,10 @@ updateSigilOptions({ skipLabelUniquenessCheck: 'str' as any }); // Throws: 'upda
   - `SigilError`
 
 - **Decorator:**
-  - `WithSigil(label, opts?)`
+  - `AttachSigil(label, opts?)`
 
-- **HOFs:**
-  - `withSigil(Class, label, opts?)`
+- **Attach function:**
+  - `attachSigil(Class, label, opts?)`
 
 - **Helpers:**
   - `isSigilCtor(ctor)`
@@ -382,8 +373,8 @@ updateSigilOptions({ skipLabelUniquenessCheck: 'str' as any }); // Throws: 'upda
 - `SigilError`: an `Error` class decorated with a `Sigil` so it can be identified at runtime.
 - `Sigilify(Base, label, opts?)`: mixin function that returns a new constructor with `Sigil` types and instance helpers.
 - `SigilifyAbstract(Base, label, opts?)`: Same as `Sigilify` but for abstract classes.
-- `WithSigil(label, opts?)`: class decorator that attaches `Sigil` metadata at declaration time.
-- `withSigil(Class, label, opts?)`: HOF that validates and decorates an existing class constructor.
+- `AttachSigil(label, opts?)`: class decorator that attaches `Sigil` metadata at declaration time.
+- `attachSigil(Class, label, opts?)`: function that validates and decorates an existing class constructor.
 - `isSigilCtor(value)`: `true` if `value` is a `Sigil` constructor.
 - `isSigilInstance(value)`: `true` if `value` is an instance of a `Sigil` constructor.
 - `getSigilLabels()`: Get `Sigil` labels registered.
@@ -397,7 +388,6 @@ When a constructor is sigilified it will expose the following **static** getters
 - `SigilLabel` — the identity label string.
 - `SigilEffectiveLabel` — the human label string.
 - `SigilLabelLineage` — readonly array of labels representing parent → child for debugging.
-- `SigilLabelSet` — readonly `Set<string>` of sigil labels for debugging.
 - `isOfType(other)` — check if other is an instance of this constructor or its children.
 - `isExactType(other) `— check if other is an instance exactly this constructor.
 
@@ -406,7 +396,6 @@ Instances of sigilified classes expose instance helpers:
 - `getSigilLabel()` — returns the identity label.
 - `getSigilEffectiveLabel()` — returns the human label.
 - `getSigilLabelLineage()` — returns lineage array.
-- `getSigilLabelSet()` — returns readonly Set.
 - `isOfType(other)` — check if other is an instance of the same class or its children as this.
 - `isExactType(other) `— check if other is an instance exactly the same constructor.
 
@@ -426,18 +415,18 @@ updateSigilOptions({
 });
 ```
 
-Values defined in previous example are defaults, per-class overrides available in mixin, decorators, and HOFs.
+Values defined in previous example are defaults, per-class overrides available in mixin and attach function / decorator.
 
 ---
 
 ## Minimal mode
 
-By default `Sigil` works with minimal mode, You can ignore all decorators and HOFs and just make base class extend `Sigil`:
+By default `Sigil` works with minimal mode, You can ignore all decorators and functions and just make base class extend `Sigil`:
 
 ```ts
 import { Sigil, updateSigilOptions } from '@vicin/sigil';
 
-// No decorators or HOF needed to use 'isOfType' ('instanceof' replacement)
+// No decorators or functions needed to use 'isOfType' ('instanceof' replacement)
 class A extends Sigil {}
 class B extends A {}
 class C extends B {}
@@ -468,15 +457,66 @@ import { updateSigilOptions } from '@vicin/sigil';
 updateSigilOptions({ skipLabelUniquenessCheck: true });
 ```
 
-But this can cause bugs if same label is used for two different classes as checks are disables globally.
+But this can cause unexpected behavior if same label is used for two different classes as checks are disabled globally.
 If you need more strict mode you can pass this options to the re-loaded class only:
 
 ```ts
-@WithSigil('HmrClassLabel', { skipLabelUniquenessCheck: true })
+@AttachSigil('HmrClassLabel', { skipLabelUniquenessCheck: true })
 class HmrClass extends Sigil {}
 ```
 
 With this approach `skipLabelUniquenessCheck` affects only `HmrClass`, and if `HmrClassLabel` or any other label is re-used error is thrown immediately
+
+---
+
+## Edge cases
+
+### Accessing Sigil `metadata` before running 'attachSigil' function
+
+If you didn't make sure that `attachSigil` runs right after class declaration and used one of `Sigil` methods this will occur:
+
+```ts
+class A extends Sigil {}
+
+console.log(A.SigilLabel); // returns auto-generated label (e.g. @Sigil-auto:A:6:a3f15bhl) or throws in strict mode
+
+attachSigil(A, 'A');
+
+console.log(A.SigilLabel); // A
+```
+
+To avoid this bug entirely you can use the return of `attachSigil` in your code so you are enforced to respect order:
+
+```ts
+class _A extends Sigil {}
+
+const A = attachSigil(_A, 'A');
+type A = InstanceType<typeof A>;
+
+console.log(A.SigilLabel); // A
+```
+
+Note that you can't use `InstanceType` on `private` or `protected` classes, however you can use `GetPrototype<T>` in such cases.
+
+#### Static blocks & IIFE static initializer
+
+Decorators ensure that metadata is appended before static blocks or IIFE static initializers, however `attachSigil` function runs after them so accessing label inside them will return auto-generated label or throw:
+
+```ts
+class A extends Sigil {
+  static IIFE = (() => {
+    const label = A.SigilLabel; // returns auto-generated label (e.g. @Sigil-auto:A:6:a3f15bhl) or throws in strict mode
+  })();
+
+  static {
+    const label = this.SigilLabel; // returns auto-generated label (e.g. @Sigil-auto:A:6:a3f15bhl) or throws in strict mode
+  }
+}
+
+attachSigil(A, 'A');
+```
+
+This behavior can't be avoided, so make sure not to call any `Sigil` method inside them or move to decorators (`@AttachSigil`)
 
 ---
 
@@ -529,7 +569,7 @@ npm run bench
 
 ## Bundle Size
 
-**Less than 1.6 KB (1.54 KB)** (minified + Brotli, including all dependencies)
+**Less than 1.6 KB (1.52 KB)** (minified + Brotli, including all dependencies)
 
 This makes Sigil one of the smallest full-featured solutions for nominal typing + reliable runtime identity.
 
@@ -546,7 +586,7 @@ npm run size
 
 ## Tests
 
-Reliability is a core pillar of `Sigil`. The library is backed by a comprehensive suite of unit tests that cover everything from basic mixins to lazy evaluation.
+Reliability is a core pillar of `Sigil`. The library is backed by a comprehensive suite of unit tests ( 71 total tests ) that cover everything from basic mixins to edge cases.
 
 **Coverage Status**
 
@@ -561,11 +601,12 @@ We maintain **100%** test coverage across the entire codebase to ensure that run
 
 **Key Test Areas**
 
-- **Mixins, Decorators & HOFs:** Validating `Sigilify`, `WithSigil` and `withSigil` behaviors.
+- **Mixins, Attach function & decorator:** Validating `Sigilify`, `AttachSigil` and `attachSigil` behaviors.
 - **Sigil methods:** Ensuring `Sigil` class methods (e.g. `SigilLabel`, `getSigilLabel`) work as expected.
-- **Lazy Evaluation:** Ensuring metadata is attached before being accessed via `Sigil` methods.
+- **Lazy Evaluation:** Ensuring metadata is attached before being accessed via `Sigil` methods even when no attach function or decorator is used.
 - **Lineage:** Verifying that `isOfType` and `isExactType` work across complex inheritance chains.
 - **Error Handling:** Strict validation for all errors and throws.
+- **Edge cases**: Known edge cases.
 
 **Running Tests**
 

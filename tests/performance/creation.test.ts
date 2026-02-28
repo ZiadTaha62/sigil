@@ -1,10 +1,10 @@
 /**
  * Performance comparisons:
  * - measures class-definition time and instance creation time
- * - compares Sigil (withSigil/Sigil base) vs normal plain classes
+ * - compares Sigil (attachSigil/Sigil base) vs normal plain classes
  */
 
-import { Sigil, Sigilify, withSigil, updateSigilOptions } from '../../src';
+import { Sigil, Sigilify, attachSigil, updateSigilOptions } from '../../src';
 
 const DEF_ITERATIONS = 2000;
 const INST_ITERATIONS = 10000;
@@ -56,7 +56,7 @@ function createPlainClassFactory(
   return new Function(src)() as any;
 }
 
-/** Create a Sigilized class by wrapping the plain class using withSigil or Sigilify */
+/** Create a Sigilized class by wrapping the plain class using attachSigil or Sigilify */
 function createSigilClassFactory(
   propsCount: number,
   methodsCount: number,
@@ -106,12 +106,12 @@ function createPlainExtendedChain(depth: number) {
 
 /** Create an extended sigilified class chain of given depth.
  * Each stage adds 2 props and 1 method (cumulative).
- * Each created class is wrapped with withSigil.
+ * Each created class is wrapped with attachSigil.
  */
 function createSigilExtendedChain(depth: number, baseLabel: string) {
   // base must extend Sigil
   class Base extends Sigil {}
-  const labeledBase = withSigil(Base, uniqueLabel(`${baseLabel}-base`));
+  const labeledBase = attachSigil(Base, uniqueLabel(`${baseLabel}-base`));
   let Prev = labeledBase;
   let totalProps = 0;
   let totalMethods = 0;
@@ -138,7 +138,7 @@ function createSigilExtendedChain(depth: number, baseLabel: string) {
 
     const Sub = clsFactory(Prev);
     const label = uniqueLabel(`${baseLabel}-depth${d}`);
-    const SigilSub = withSigil(Sub, label);
+    const SigilSub = attachSigil(Sub, label);
     Prev = SigilSub;
   }
 

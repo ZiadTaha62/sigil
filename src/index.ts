@@ -1,6 +1,5 @@
 export { Sigil, SigilError } from './classes';
-export { WithSigil } from './decorator';
-export { withSigil } from './hof';
+export { AttachSigil, WithSigil, attachSigil, withSigil } from './attach';
 export { isSigilCtor, isSigilInstance, getSigilLabels } from './helpers';
 export { Sigilify, SigilifyAbstract } from './mixin';
 export {

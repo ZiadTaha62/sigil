@@ -7,7 +7,7 @@ Thanks for your interest! We welcome contributions.
 - **Issues**: Report bugs or suggest features via GitHub Issues. Use templates if possible.
 - **Pull Requests (PRs)**:
   1. Fork the repo and create a branch: `git checkout -b feature/my-new-feature`.
-  2. Commit changes: Follow conventional commits (e.g., "feat: add new HOF").
+  2. Commit changes: Follow conventional commits.
   3. Push and open a PR against `develop` branch.
   4. Describe changes, link to issues, and add tests.
 - **Code Style**: Use Prettier/ESLint (add configs to repo).

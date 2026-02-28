@@ -1,7 +1,6 @@
 /**
  * Symbol to uniquely identify sigil classes.
  *
- * @internal
  * @constant {symbol}
  */
 export const __SIGIL__ = Symbol.for('@vicin/sigil.__SIGIL__');
@@ -11,7 +10,6 @@ export const __SIGIL__ = Symbol.for('@vicin/sigil.__SIGIL__');
  *
  * Stored on the constructor as a non-enumerable property.
  *
- * @internal
  * @constant {symbol}
  */
 export const __LABEL__ = Symbol.for('@vicin/sigil.__LABEL__');
@@ -21,17 +19,13 @@ export const __LABEL__ = Symbol.for('@vicin/sigil.__LABEL__');
  *
  * Stored on the constructor as a non-enumerable property.
  *
- * @internal
  * @constant {symbol}
  */
 export const __EFFECTIVE_LABEL__ = Symbol.for('@vicin/sigil.__EFFECTIVE_LABEL__');
 
 /**
- * Symbol used to store the label lineage set for a sigil constructor.
+ * Symbol used to store the depth inside Sigil chain. used in exact checks
  *
- * This is a set of labels (strings) representing the inheritance path of labels.
- *
- * @internal
  * @constant {symbol}
  */
-export const __LINEAGE__ = Symbol.for('@vicin/sigil.__LINEAGE__');
+export const __DEPTH__ = Symbol.for('@vicin/sigil.__DEPTH__');

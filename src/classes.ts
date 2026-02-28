@@ -1,4 +1,4 @@
-import { Sigilify } from './mixin';
+import { Sigilify, BaseSigilify } from './mixin';
 import type { sigil } from './types';
 
 /**
@@ -7,7 +7,7 @@ import type { sigil } from './types';
  * This is produced by `Sigilify` and can serve as a basic sentinel/base
  * class for other sigil classes or for debugging/inspection.
  */
-export const Sigil = Sigilify(class {}, 'Sigil');
+export const Sigil = BaseSigilify(class {});
 export type Sigil = InstanceType<typeof Sigil>;
 
 /**

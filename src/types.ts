@@ -21,12 +21,12 @@ export declare const sigil: unique symbol;
  * @template L - Narrow string literal type representing the label.
  * @template P - Optinal parent to extend its '[sigil]'.
  */
-export interface ISigilStatic<L extends string = string> {
+export interface ISigilStatic {
   /** Class-level label constant (identity). */
-  readonly SigilLabel: L;
+  readonly SigilLabel: string;
 
   /** Class-level label constant (human readable). */
-  readonly SigilEffectiveLabel: L;
+  readonly SigilEffectiveLabel: string;
 
   /**
    * Copy of the linearized sigil type label chain for the current constructor.
@@ -116,10 +116,8 @@ export interface ISigilInstance<L extends string = string, P extends Function = 
  * @template L - Narrow string literal type for the label.
  * @template P - Optinal parent to extend its '[sigil]'.
  */
-export type ISigil<L extends string = string, P extends Function = never> = ConstructorAbstract<
-  ISigilInstance<L, P>
-> &
-  ISigilStatic<L>;
+export type ISigil<L extends string = string, P extends Function = never> = ISigilStatic &
+  ConstructorAbstract<ISigilInstance<L, P>>;
 
 /** Update '[sigil]' field for nominal typing */
 export type ExtendSigil<L extends string, P extends ISigilInstance> = Prettify<

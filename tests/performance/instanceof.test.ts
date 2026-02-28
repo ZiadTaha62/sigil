@@ -13,7 +13,7 @@
  *  - Use --runInBand and --expose-gc for more stable results if desired.
  */
 
-import { Sigil, withSigil, updateSigilOptions } from '../../src';
+import { Sigil, attachSigil, updateSigilOptions } from '../../src';
 
 const CHECK_ITERATIONS = 200_000; // number of check ops per measured run
 const WARMUP_ITER = 1000;
@@ -67,7 +67,7 @@ function buildPlainChain(depth: number) {
  */
 function buildSigilChain(depth: number) {
   class Base extends Sigil {}
-  const labeledBase = withSigil(Base, uniqueLabel('sigil-base'));
+  const labeledBase = attachSigil(Base, uniqueLabel('sigil-base'));
   let Prev = labeledBase;
   for (let i = 0; i < depth; i++) {
     const Sub = new Function(
@@ -75,7 +75,7 @@ function buildSigilChain(depth: number) {
       `return class extends Prev { constructor(...a){ super(...a); } }`
     )(Prev);
     const label = uniqueLabel(`sigil-depth${i}`);
-    const SigilSub = withSigil(Sub, label);
+    const SigilSub = attachSigil(Sub, label);
     Prev = SigilSub;
   }
   const Final = Prev;

@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.4.0] - 2026-02-28
+
+### Changed
+
+- Updated internal logic to handle edge-cases
+- Edge cases part added to tests
+- Updated README.md
+
+### Added
+
+- `AttachSigil` / `attachSigil` which are `WithSigil` / `withSigil` renamed for clarity
+
+### Deprecated
+
+- `WithSigil` / `withSigil` renamed for clarity. old names will be removed in v4
+- `SigilLabelSet` / `getSigilLabelSet` methods to minimize api surface and bundle size as they are redundant (internall 'new Set(this.SigilLabelLineage)' only). will be removed in v4
+
 ## [3.3.0] - 2026-02-27
 
 ### Changed
@@ -27,7 +44,7 @@ All notable changes to this project will be documented in this file.
 
 ### Deprecated
 
-- `DEFAULT_LABEL_REGEX` is deprecated and will be removed in v4, use `RECOMMENDED_LABEL_REGEX` instead
+- `DEFAULT_LABEL_REGEX` is deprecated use `RECOMMENDED_LABEL_REGEX` instead, will be removed in v4
 
 ## [3.1.4] - 2026-02-26
 
